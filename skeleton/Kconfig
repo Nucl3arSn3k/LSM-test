@@ -1,0 +1,6 @@
+config SECURITY_SKELETON
+    bool "Enables the custom Skeleton LSM"
+    default y
+    depends on SECURITY
+    help
+      Enable the Skeleton LSM, which provides basic security checks.

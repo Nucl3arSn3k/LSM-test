@@ -1,0 +1,1 @@
+obj-y = skeleton_main.o
