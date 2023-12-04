@@ -5,7 +5,7 @@
 
 static int skel_check (struct linux_binprm *bprm)
 {
-    printk(KERN_INFO "SKELETON LSM check of %s\n", bprm->filename);
+    printk(KERN_INFO "SKELETON LSM check of\n" );
     return 0;
 }
 
@@ -17,12 +17,19 @@ static struct security_hook_list skeleton_hooks[] = {
 
 
 
-
-static void __init sk_init(void)
+static int __init sk_init(void)
 {
-    security_add_hooks(steve_hooks, ARRAY_SIZE(steve_hooks), "Skeleton");
+    security_add_hooks(skeleton_hooks, ARRAY_SIZE(skeleton_hooks), "Skeleton");
     printk(KERN_INFO "Skeleton LSM loaded \n");
+    return 0;
 }
 
 
+/*
+ * Ensure the initialization code is called.
+ */
+DEFINE_LSM(can_exec_init) = {
+        .init = sk_init,
+        .name = "skeleton",
+};
 
