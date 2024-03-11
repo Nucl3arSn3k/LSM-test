@@ -1,10 +1,10 @@
 #include <linux/lsm_hooks.h>
 #include <linux/security.h>
- 
+#include <linux/binfmts.h>
 
 static int skel_check (struct linux_binprm *bprm)
 {
-    printk(KERN_INFO "SKELETON LSM check of\n" );
+    printk(KERN_INFO "SKELETON LSM check of %s\n",bprm->filename);
     return 0;
 }
 
