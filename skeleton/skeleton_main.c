@@ -1,8 +1,9 @@
 #include <linux/lsm_hooks.h>
 #include <linux/security.h>
 #include <linux/binfmts.h>
-#include <linux/sched.h>
+#include <linux/sched.h>	
 #include <linux/slab.h>
+#include <linux/cred.h>
 #include "skeleton.h"
 //Basic check of files being accessed as a test function
 static int skel_check (struct linux_binprm *bprm)
@@ -24,8 +25,11 @@ int skel_task_alloc(struct task_struct *task,unsigned long clone_flags){
 	}
 
 	tsec->skeleton_id = 22;
+	tsec->parent_uid = current_uid().val;
 	task->security = tsec;
+#if 0
 	printk(KERN_INFO "alloc functional for task with PID:%d and name:%s\n",task->pid,task->comm);
+#endif
 	return 0;
 }
 
@@ -33,7 +37,7 @@ int skel_task_alloc(struct task_struct *task,unsigned long clone_flags){
 void skel_task_free(struct task_struct *task){
 	struct skeleton_info *tsec = task->security;
 	if (tsec){
-		printk(KERN_INFO "freeing for %s\n",task->comm);
+		printk(KERN_INFO "freeing for %s uid is %i\n",task->comm,tsec->parent_uid);
 		kfree(tsec);
 		task->security = NULL;
 	}
