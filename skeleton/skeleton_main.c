@@ -129,30 +129,23 @@ int skel_file_alloc_security(struct file *file) {
     return 0;
 }
 
-void print_filepath(struct file *file){
-  char *path;
-  path = kzalloc(PATH_MAX, GFP_KERNEL);
-  if(path){
-    //path = l
-    if (!IS_ERR(d_path(&file->f_path,path,PATH_MAX))){
-      
-
-
-
+void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing filepath
+    char *path;
+    path = kzalloc(PATH_MAX, GFP_KERNEL);
+    if (path) {
+        if (!IS_ERR(d_path(&file->f_path, path, PATH_MAX))) {
+            printk(KERN_INFO "Freeing security for file %s with appid %s\n",
+                   path, minl ? minl->appid : "NULL");
+        }
+        kfree(path);
     }
-    kfree(path);
-
-  }
-
-
-
 }
 
-void skel_file_free_security(struct file *file) {
+void skel_file_free_security(struct file *file) { //Free file security field
     struct fl_nest *wrapper = file->f_security;
-    
     if (wrapper) {
-        
+        struct fl_min *minl = rcu_dereference(wrapper->min);
+        print_filepath(file, minl);
         free_nest(wrapper);
         file->f_security = NULL;
     }
