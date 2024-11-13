@@ -48,8 +48,8 @@ void skel_task_free(struct task_struct *task){
 	}	
 }
 
-
-struct fl_min *create_label_min(const char *appid){
+//Header file file label functionalities
+struct fl_min *create_label_min(const char *appid){ //Alloc a label for a file
 	struct fl_min *minl;
 	minl = kzalloc(sizeof(struct fl_min), GFP_KERNEL);
 	if (!minl){
@@ -63,7 +63,7 @@ struct fl_min *create_label_min(const char *appid){
 	return minl;
 }
 
-void free_min(struct fl_min *label){
+void free_min(struct fl_min *label){//Free up a label
 	//from wherever label is
 	if(!label){
 		if(label->appid != NULL){
@@ -74,7 +74,7 @@ void free_min(struct fl_min *label){
 	}
 }
 
-void put_min(struct fl_min *label){
+void put_min(struct fl_min *label){//Decrement the refcount by 1,if 0,free the label
 	if(label){
 		if(atomic_dec_and_test(&label->ref_count)){
 			kfree(label->appid);
@@ -94,7 +94,29 @@ struct fl_nest *get_fl(struct file *file){ //Getting the label
 		
 }
 
+void attatch_label(struct file *file) { //attatching the label
+	struct fl_nest *wrapper;
+	struct fl_min *minl;
+	wrapper = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
+	if (!wrapper) {
+		printk(KERN_ERR "Failed to allocate fl_nest\n");
+		return ERR_PTR(-ENOMEM);
+	}
 
+	spin_lock_init(&nest->lock);
+	
+	minl = create_label_min(appid_placehold);
+	if (!minl) {
+		printk(KERN_ERR "Failed to create label_min\n");
+		kfree(wrapper);
+		return ERR_PTR(-ENOMEM);
+	}
+
+	rcu_assign_pointer(wrapper->min,minl);
+
+	
+	file->f_security = wrapper; //Don't think I need to use the special RCU pointer here
+}
 
 
 static struct security_hook_list skeleton_hooks[] = {
