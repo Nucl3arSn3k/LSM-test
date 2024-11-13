@@ -4,7 +4,12 @@
 #include <linux/sched.h>	
 #include <linux/slab.h>
 #include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/rcupdate.h>
+#include <linux/spinlock.h>
+#include <linux/atomic.h>
 #include "skeleton.h"
+#include "file.h"
 //Basic check of files being accessed as a test function
 static int skel_check (struct linux_binprm *bprm)
 {
@@ -40,10 +45,57 @@ void skel_task_free(struct task_struct *task){
 		printk(KERN_INFO "freeing for %s uid is %i\n",task->comm,tsec->parent_uid);
 		kfree(tsec);
 		task->security = NULL;
-	}
-	
-	
+	}	
 }
+
+
+struct fl_min *create_label_min(const char *appid){
+	struct fl_min *minl;
+	minl = kzalloc(sizeof(struct fl_min), GFP_KERNEL);
+	if (!minl){
+		printk("File label alloc failed");
+		return ERR_PTR(-ENOMEM);
+	}
+	minl->appid = kstrdup(appid,GFP_KERNEL);
+	if (!minl -> appid){}
+	atomic_set(&minl -> ref_count,1);
+	
+	return minl;
+}
+
+void free_min(struct fl_min *label){
+	//from wherever label is
+	if(!label){
+		if(label->appid != NULL){
+			kfree(label->appid);
+			//label->ref_count 	
+		}
+		kfree(label);
+	}
+}
+
+void put_min(struct fl_min *label){
+	if(label){
+		if(atomic_dec_and_test(&label->ref_count)){
+			kfree(label->appid);
+			kfree(label);
+		}
+	}
+}
+
+
+struct fl_nest *get_fl(struct file *file){ //Getting the label
+	struct fl_nest *reqfl;
+	rcu_read_lock();
+	reqfl = rcu_dereference(file->f_security);
+	rcu_read_unlock();
+
+	return reqfl;
+		
+}
+
+
+
 
 static struct security_hook_list skeleton_hooks[] = {
     //LSM_HOOK_INIT(bprm_check_security, skel_task_alloc),
