@@ -11,7 +11,7 @@
 #include "skeleton.h"
 #include "file.h"
 
-static const char *appid_placehold = "TEST_LABEL_001";
+
 
 //Basic check of files being accessed as a test function
 static int skel_check(struct linux_binprm *bprm)
@@ -45,7 +45,7 @@ void skel_task_free(struct task_struct *task) {
 }
 
 // File label management functions
-struct fl_min *create_label_min(const char *appid) {
+struct fl_min *create_label_min(const char *appid) { //Create the minlabel
     struct fl_min *minl;
     minl = kzalloc(sizeof(struct fl_min), GFP_KERNEL);
     if (!minl) {
@@ -61,7 +61,7 @@ struct fl_min *create_label_min(const char *appid) {
     return minl;
 }
 
-void free_min(struct fl_min *label) {
+void free_min(struct fl_min *label) { //Free the minlabel
     if (label) {
         if (label->appid != NULL) {
             kfree(label->appid);
@@ -72,13 +72,14 @@ void free_min(struct fl_min *label) {
 
 void put_min(struct fl_min *label) {
     if (label) {
+        //printk("Freeing minlabel for file"
         if (atomic_dec_and_test(&label->ref_count)) {
             free_min(label);
         }
     }
 }
 
-// New function to get and increment reference count
+// New function to get and increment atromic reference count
 struct fl_min *get_min(struct fl_min *label) {
     if (label) {
         atomic_inc(&label->ref_count);
@@ -86,7 +87,7 @@ struct fl_min *get_min(struct fl_min *label) {
     return label;
 }
 
-void free_nest(struct fl_nest *wrapper) {
+void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
     if (wrapper) {
         struct fl_min *minl = rcu_dereference(wrapper->min);
         if (minl) {
@@ -96,7 +97,7 @@ void free_nest(struct fl_nest *wrapper) {
     }
 }
 
-struct fl_nest *get_fl(struct file *file) {
+struct fl_nest *get_fl(struct file *file) { //Get a label if needed
     struct fl_nest *reqfl;
     rcu_read_lock();
     reqfl = rcu_dereference(file->f_security);
@@ -108,7 +109,7 @@ struct fl_nest *get_fl(struct file *file) {
 int skel_file_alloc_security(struct file *file) {
     struct fl_nest *wrapper;
     struct fl_min *minl;
-
+    static const char *appid_placehold = "CAFEBABE";
     wrapper = kzalloc(sizeof(struct fl_nest), GFP_KERNEL);
     if (!wrapper) {
         printk(KERN_ERR "Failed to allocate fl_nest\n");
@@ -128,9 +129,30 @@ int skel_file_alloc_security(struct file *file) {
     return 0;
 }
 
+void print_filepath(struct file *file){
+  char *path;
+  path = kzalloc(PATH_MAX, GFP_KERNEL);
+  if(path){
+    //path = l
+    if (!IS_ERR(d_path(&file->f_path,path,PATH_MAX))){
+      
+
+
+
+    }
+    kfree(path);
+
+  }
+
+
+
+}
+
 void skel_file_free_security(struct file *file) {
     struct fl_nest *wrapper = file->f_security;
+    
     if (wrapper) {
+        
         free_nest(wrapper);
         file->f_security = NULL;
     }
