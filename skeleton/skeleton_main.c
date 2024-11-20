@@ -20,29 +20,7 @@ static int skel_check(struct linux_binprm *bprm)
     return 0;
 }
 
-//Testing kernel memory allocation. Using kzalloc
-int skel_task_alloc(struct task_struct *task, unsigned long clone_flags) {
-    printk(KERN_INFO "allocing for %s\n", task->comm);
-    struct skeleton_info *tsec;
-    tsec = kzalloc(sizeof(struct skeleton_info), GFP_KERNEL);
-    if (!tsec) {
-        printk(KERN_INFO "alloc failed");
-        return -ENOMEM;
-    }
-    tsec->skeleton_id = 22;
-    tsec->parent_uid = current_uid().val;
-    task->security = tsec;
-    return 0;
-}
 
-void skel_task_free(struct task_struct *task) {
-    struct skeleton_info *tsec = task->security;
-    if (tsec) {
-        printk(KERN_INFO "freeing for %s uid is %i\n", task->comm, tsec->parent_uid);
-        kfree(tsec);
-        task->security = NULL;
-    }	
-}
 
 struct fl_min *create_label_min (int *app_id){
 	struct fl_min *minl;
@@ -67,11 +45,23 @@ void free_min(struct fl_min *label){
 struct fl_nest *get_fl(struct inode *node){ //Create the holding struct
 
 	struct fl_nest *contained;
-	minl = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
-	struct fl_min *pandora = create_label_min();
-	rcu_assign_pointer(contained->min,pandora);
+	contained = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
+	if(!contained){
+		ERR_PTR(-ENOMEM);
+	}
 	spin_lock_init(&contained->lock);
+	struct fl_min *pandora = create_label_min();
+	if(IS_ERR(pandora)){
+		kfree(contained);
+		return ERR_PTR(PTR_ERR(pandora));
+	}
+	spin_lock(&contained->lock);
+	rcu_assign_pointer(contained->min,pandora);
+	spin_unlock(&contained->lock);
+	
 	node->i_security = contained;
+
+	return contained;
 }
 
 
@@ -105,30 +95,7 @@ struct fl_nest *get_fl(struct file *file) { //Get a label if needed
     return reqfl;
 }
 
-// File security hooks
-int skel_file_alloc_security(struct file *file) {
-    struct fl_nest *wrapper;
-    struct fl_min *minl;
-    //static const char *appid_placehold = "CAFEBABE";
-    int *appid_placehold = 
-    wrapper = kzalloc(sizeof(struct fl_nest), GFP_KERNEL);
-    if (!wrapper) {
-        printk(KERN_ERR "Failed to allocate fl_nest\n");
-        return -ENOMEM;
-    }
-    spin_lock_init(&(wrapper->lock)); //clears up that we're getting wrapper and deref lock
-#if 0
-    minl = create_label_min(appid_placehold);
-    if (IS_ERR(minl)) {
-        kfree(wrapper);
-        return PTR_ERR(minl);
-    }
-    
-    rcu_assign_pointer(wrapper->min, minl);
-    file->f_security = wrapper;
-#endif
-    return 0;
-}
+
 
 void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing filepath
     char *path;
@@ -142,13 +109,13 @@ void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing 
     }
 }
 
-void skel_file_free_security(struct file *file) { //Free file security field
-    struct fl_nest *wrapper = file->f_security;
+void skel_file_free_security(struct inode *file) { //Free file security field
+    struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
         struct fl_min *minl = rcu_dereference(wrapper->min);
         print_filepath(file, minl);
         free_nest(wrapper);
-        file->f_security = NULL;
+        file->i_security = NULL;
     }
 }
 
