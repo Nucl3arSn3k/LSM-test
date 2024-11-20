@@ -27,7 +27,7 @@ struct fl_min *create_label_min (int *app_id){
 	minl = kzalloc(sizeof(struct fl_min),GFP_KERNEL);
 	if (!minl){
 		printk(KERN_INFO "alloc failed");
-		return ERR_PTR(-ENOMEM)
+		return ERR_PTR(-ENOMEM);
 	}
 	minl->appid = app_id;
 	atomic_set(&minl->ref_count,1);
@@ -35,22 +35,38 @@ struct fl_min *create_label_min (int *app_id){
 }
 
 
-void free_min(struct fl_min *label){
+void free_min(struct fl_min *label){ //Free label
 	if (label){
 		kfree(label);
 	}
 }
 
 
-struct fl_nest *get_fl(struct inode *node){ //Create the holding struct
+void put_min(struct fl_min *label) { //decrement and check label,free if 0
+    if (label && atomic_dec_and_test(&label->ref_count)) {
+        free_min(label);
+    }
+}
 
+// New function to get and increment atromic reference count
+struct fl_min *get_min(struct fl_min *label) {
+    if (label) {
+        atomic_inc(&label->ref_count);
+    }
+    return label;
+}
+ 
+
+
+struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
+	int app_id = 0xDEADBEEF;
 	struct fl_nest *contained;
 	contained = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
 	if(!contained){
 		ERR_PTR(-ENOMEM);
 	}
 	spin_lock_init(&contained->lock);
-	struct fl_min *pandora = create_label_min();
+	struct fl_min *pandora = create_label_min(app_id);
 	if(IS_ERR(pandora)){
 		kfree(contained);
 		return ERR_PTR(PTR_ERR(pandora));
@@ -69,13 +85,8 @@ struct fl_nest *get_fl(struct inode *node){ //Create the holding struct
 
 
 
-// New function to get and increment atromic reference count
-struct fl_min *get_min(struct fl_min *label) {
-    if (label) {
-        atomic_inc(&label->ref_count);
-    }
-    return label;
-}
+
+
 
 void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
     if (wrapper) {
@@ -87,10 +98,10 @@ void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
     }
 }
 
-struct fl_nest *get_fl(struct file *file) { //Get a label if needed
+struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
     struct fl_nest *reqfl;
     rcu_read_lock();
-    reqfl = rcu_dereference(file->f_security);
+    reqfl = rcu_dereference(node->i_security);
     rcu_read_unlock();
     return reqfl;
 }
@@ -109,14 +120,27 @@ void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing 
     }
 }
 
-void skel_file_free_security(struct inode *file) { //Free file security field
+void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
         struct fl_min *minl = rcu_dereference(wrapper->min);
-        print_filepath(file, minl);
+	printk(KERN_DEBUG "Skeleton LSM: Freeing security for inode %lu\n", inode->i_ino);
         free_nest(wrapper);
         file->i_security = NULL;
     }
+}
+
+static int skl_alloc_inode(struct inode *node) {
+    struct fl_nest *nest;
+    
+    if (!node)
+        return -EINVAL;
+        
+    nest = set_fl(node);  
+    if (IS_ERR(nest))
+        return PTR_ERR(nest);
+        
+    return 0;
 }
 
 //File structs are created when?
@@ -130,8 +154,8 @@ void skel_file_free_security(struct inode *file) { //Free file security field
 
 // Updated hook list
 static struct security_hook_list skeleton_hooks[] = {
-    LSM_HOOK_INIT(task_alloc, skel_task_alloc),
-    LSM_HOOK_INIT(task_free, skel_task_free),
+    LSM_HOOK_INIT(inode_free_security, skl_inode_free),
+    LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inode),
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
