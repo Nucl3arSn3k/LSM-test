@@ -44,40 +44,40 @@ void skel_task_free(struct task_struct *task) {
     }	
 }
 
-// File label management functions
-struct fl_min *create_label_min(const char *appid) { //Create the minlabel
-    struct fl_min *minl;
-    minl = kzalloc(sizeof(struct fl_min), GFP_KERNEL);
-    if (!minl) {
-        printk(KERN_ERR "File label alloc failed\n");
-        return ERR_PTR(-ENOMEM);
-    }
-    minl->appid = kstrdup(appid, GFP_KERNEL);
-    if (!minl->appid) {
-        kfree(minl);
-        return ERR_PTR(-ENOMEM);
-    }
-    atomic_set(&minl->ref_count, 1);
-    return minl;
+struct fl_min *create_label_min (int *app_id){
+	struct fl_min *minl;
+	minl = kzalloc(sizeof(struct fl_min),GFP_KERNEL);
+	if (!minl){
+		printk(KERN_INFO "alloc failed");
+		return ERR_PTR(-ENOMEM)
+	}
+	minl->appid = app_id;
+	atomic_set(&minl->ref_count,1);
+	return minl;
 }
 
-void free_min(struct fl_min *label) { //Free the minlabel
-    if (label) {
-        if (label->appid != NULL) {
-            kfree(label->appid);
-        }
-        kfree(label);
-    }
+
+void free_min(struct fl_min *label){
+	if (label){
+		kfree(label);
+	}
 }
 
-void put_min(struct fl_min *label) {
-    if (label) {
-        //printk("Freeing minlabel for file"
-        if (atomic_dec_and_test(&label->ref_count)) {
-            free_min(label);
-        }
-    }
+
+struct fl_nest *get_fl(struct inode *node){ //Create the holding struct
+
+	struct fl_nest *contained;
+	minl = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
+	struct fl_min *pandora = create_label_min();
+	rcu_assign_pointer(contained->min,pandora);
+	spin_lock_init(&contained->lock);
+	node->i_security = contained;
 }
+
+
+
+
+
 
 // New function to get and increment atromic reference count
 struct fl_min *get_min(struct fl_min *label) {
@@ -109,14 +109,15 @@ struct fl_nest *get_fl(struct file *file) { //Get a label if needed
 int skel_file_alloc_security(struct file *file) {
     struct fl_nest *wrapper;
     struct fl_min *minl;
-    static const char *appid_placehold = "CAFEBABE";
+    //static const char *appid_placehold = "CAFEBABE";
+    int *appid_placehold = 
     wrapper = kzalloc(sizeof(struct fl_nest), GFP_KERNEL);
     if (!wrapper) {
         printk(KERN_ERR "Failed to allocate fl_nest\n");
         return -ENOMEM;
     }
-    spin_lock_init(&wrapper->lock);
-    
+    spin_lock_init(&(wrapper->lock)); //clears up that we're getting wrapper and deref lock
+#if 0
     minl = create_label_min(appid_placehold);
     if (IS_ERR(minl)) {
         kfree(wrapper);
@@ -125,7 +126,7 @@ int skel_file_alloc_security(struct file *file) {
     
     rcu_assign_pointer(wrapper->min, minl);
     file->f_security = wrapper;
-    
+#endif
     return 0;
 }
 
@@ -133,7 +134,7 @@ void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing 
     char *path;
     path = kzalloc(PATH_MAX, GFP_KERNEL);
     if (path) {
-        if (!IS_ERR(d_path(&file->f_path, path, PATH_MAX))) {
+        if (!IS_ERR(d_path(&file->f_path, path, PATH_MAX))) { //file is anything with file descriptor double check Understanding the Linux Kernel
             printk(KERN_INFO "Freeing security for file %s with appid %s\n",
                    path, minl ? minl->appid : "NULL");
         }
@@ -151,12 +152,21 @@ void skel_file_free_security(struct file *file) { //Free file security field
     }
 }
 
+//File structs are created when?
+//best guess is open,pipe and socket
+//File descriptor is index into array of struct file pointers,access ctrl info is cached.
+//NOT A ON DISK REPRESNTATIVE!!!!
+//May not actually be putting attribute on a on disk file,may be applying to PIPES
+//file->f_security possibly being called on open
+//inode alloc,inode free,and inode init
+//persesitent is d_inode in some places (BSD probably)
+
 // Updated hook list
 static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(task_alloc, skel_task_alloc),
     LSM_HOOK_INIT(task_free, skel_task_free),
-    LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
-    LSM_HOOK_INIT(file_free_security, skel_file_free_security),
+    //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
+    //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
 
 static int __init sk_init(void)
