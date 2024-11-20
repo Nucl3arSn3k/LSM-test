@@ -22,7 +22,7 @@ static int skel_check(struct linux_binprm *bprm)
 
 
 
-struct fl_min *create_label_min (int *app_id){
+struct fl_min *create_label_min (int app_id){
 	struct fl_min *minl;
 	minl = kzalloc(sizeof(struct fl_min),GFP_KERNEL);
 	if (!minl){
@@ -89,6 +89,7 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 
 
 void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
+    synchronize_rcu();
     if (wrapper) {
         struct fl_min *minl = rcu_dereference(wrapper->min);
         if (minl) {
@@ -108,23 +109,11 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 
 
 
-void print_filepath(struct file *file, struct fl_min *minl) { //Handle printing filepath
-    char *path;
-    path = kzalloc(PATH_MAX, GFP_KERNEL);
-    if (path) {
-        if (!IS_ERR(d_path(&file->f_path, path, PATH_MAX))) { //file is anything with file descriptor double check Understanding the Linux Kernel
-            printk(KERN_INFO "Freeing security for file %s with appid %s\n",
-                   path, minl ? minl->appid : "NULL");
-        }
-        kfree(path);
-    }
-}
-
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
         struct fl_min *minl = rcu_dereference(wrapper->min);
-	printk(KERN_DEBUG "Skeleton LSM: Freeing security for inode %lu\n", inode->i_ino);
+	printk(KERN_DEBUG "Skeleton LSM: Freeing security for inode %lu\n", file->i_ino);
         free_nest(wrapper);
         file->i_security = NULL;
     }
