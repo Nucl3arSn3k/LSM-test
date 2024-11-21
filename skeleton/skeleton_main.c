@@ -11,7 +11,8 @@
 #include "skeleton.h"
 #include "file.h"
 
-
+//Problem of making attributes PERSIST.
+//not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 
 //Basic check of files being accessed as a test function
 static int skel_check(struct linux_binprm *bprm)
@@ -60,7 +61,7 @@ struct fl_min *get_min(struct fl_min *label) {
 
 struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 	int app_id = 0xDEADBEEF;
-	struct fl_nest *contained;
+	struct fl_nest *contained; //fl = file label
 	contained = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
 	if(!contained){
 		ERR_PTR(-ENOMEM);
@@ -112,14 +113,13 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-        struct fl_min *minl = rcu_dereference(wrapper->min);
 	printk(KERN_DEBUG "Skeleton LSM: Freeing security for inode %lu\n", file->i_ino);
         free_nest(wrapper);
         file->i_security = NULL;
     }
 }
 
-static int skl_alloc_inode(struct inode *node) {
+static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to actually put this on disk
     struct fl_nest *nest;
     
     if (!node)
