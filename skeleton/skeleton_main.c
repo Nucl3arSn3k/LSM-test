@@ -8,6 +8,7 @@
 #include <linux/rcupdate.h>
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
+#include <linux/init.h>
 #include "skeleton.h"
 #include "file.h"
 
@@ -60,6 +61,10 @@ struct fl_min *get_min(struct fl_min *label) {
 
 
 struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
+	if (system_state < SYSTEM_RUNNING) {
+	        printk(KERN_INFO "Skeleton LSM: Skipping label during early boot\n");
+	        return NULL;
+    	}
 	int app_id = 0xDEADBEEF;
 	struct fl_nest *contained; //fl = file label
 	contained = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
@@ -80,12 +85,6 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 
 	return contained;
 }
-
-
-
-
-
-
 
 
 
@@ -151,8 +150,9 @@ static struct security_hook_list skeleton_hooks[] = {
 
 static int __init sk_init(void)
 {
-    security_add_hooks(skeleton_hooks, ARRAY_SIZE(skeleton_hooks), "Skeleton");
     printk(KERN_INFO "Skeleton LSM loaded\n");
+    security_add_hooks(skeleton_hooks, ARRAY_SIZE(skeleton_hooks), "Skeleton");
+    printk(KERN_INFO "Hooks registered\n");
     return 0;
 }
 
