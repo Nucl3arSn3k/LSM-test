@@ -16,13 +16,6 @@
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 
 //Basic check of files being accessed as a test function
-static int skel_check(struct linux_binprm *bprm)
-{
-    printk(KERN_INFO "SKELETON LSM check of %s\n", bprm->filename);
-    return 0;
-}
-
-
 
 struct fl_min *create_label_min (int app_id){
 	struct fl_min *minl;
