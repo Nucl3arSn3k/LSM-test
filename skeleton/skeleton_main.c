@@ -9,6 +9,7 @@
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
 #include <linux/init.h>
+#include <linux/xattr.h>
 #include "skeleton.h"
 #include "file.h"
 
@@ -50,6 +51,34 @@ struct fl_min *get_min(struct fl_min *label) {
     }
     return label;
 }
+
+static int label_to_string(struct fl_min *label, char **context)
+{
+    char *str;
+    str = kmalloc(32, GFP_KERNEL);
+    if (!str)
+        return -ENOMEM;
+    
+    // Convert appid to hex string
+    snprintf(str, 32, "%x", label->appid);
+    *context = str;
+    return 0;
+}
+
+// Convert string format back to your label
+static int string_to_label(const char *str, struct fl_min **label)
+{
+    int appid;
+    if (sscanf(str, "%x", &appid) != 1)
+        return -EINVAL;
+        
+    *label = create_label_min(appid);
+    if (IS_ERR(*label))
+        return PTR_ERR(*label);
+        
+    return 0;
+}
+
  
 
 
@@ -124,6 +153,94 @@ static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to a
     return 0;
 }
 
+static int skl_inode_set_security(struct inode *inode, const char *name,
+                                const void *value, size_t size, int flags)
+{
+    struct fl_nest *nest = inode->i_security;
+    struct fl_min *new_label;
+    int ret;
+
+    if (strcmp(name, "security.skeleton") != 0)
+        return -EOPNOTSUPP;
+
+    ret = string_to_label(value, &new_label);
+    if (ret)
+        return ret;
+
+    spin_lock(&nest->lock);
+    {
+        struct fl_min *old = rcu_dereference_protected(nest->min,
+                                    lockdep_is_held(&nest->lock));
+        rcu_assign_pointer(nest->min, new_label);
+        if (old)
+            put_min(old);
+    }
+    spin_unlock(&nest->lock);
+
+    return 0;
+}
+
+// Hook for getting security xattr
+static int skl_inode_get_security(struct inode *inode, const char *name, void **buffer,
+                                bool alloc)
+{
+    struct fl_nest *nest = inode->i_security;
+    struct fl_min *label;
+    char *context;
+    int ret;
+
+    if (strcmp(name, "security.skeleton") != 0)
+        return -EOPNOTSUPP;
+
+    rcu_read_lock();
+    label = rcu_dereference(nest->min);
+    if (!label) {
+        rcu_read_unlock();
+        return -ENODATA;
+    }
+    
+    ret = label_to_string(label, &context);
+    rcu_read_unlock();
+    
+    if (ret)
+        return ret;
+        
+    if (alloc)
+        *buffer = context;
+    else
+        kfree(context);
+        
+    return strlen(context);
+}
+
+
+static int skl_inode_init_security(struct inode *inode, struct inode *dir,
+                                 const struct qstr *qstr,
+                                 const char **name,
+                                 void **value,
+                                 size_t *len)
+{
+    struct fl_nest *nest = inode->i_security;
+    char *context;
+    int ret;
+
+    *name = "security.skeleton";
+    
+    rcu_read_lock();
+    ret = label_to_string(rcu_dereference(nest->min), &context);
+    rcu_read_unlock();
+    
+    if (ret)
+        return ret;
+        
+    *value = context;
+    *len = strlen(context);
+    
+    return 0;
+}
+
+
+
 //File structs are created when?
 //best guess is open,pipe and socket
 //File descriptor is index into array of struct file pointers,access ctrl info is cached.
@@ -137,10 +254,10 @@ static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to a
 static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_free_security, skl_inode_free),
     LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inode),
-    //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
-    //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
+    LSM_HOOK_INIT(inode_setsecurity, skl_inode_set_security),
+    LSM_HOOK_INIT(inode_getsecurity, skl_inode_get_security),
+    LSM_HOOK_INIT(inode_init_security, skl_inode_init_security),  // Add this
 };
-
 static int __init sk_init(void)
 {
     printk(KERN_INFO "Skeleton LSM loaded\n");
