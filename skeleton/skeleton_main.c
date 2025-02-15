@@ -9,11 +9,24 @@
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
 #include <linux/init.h>
-#include "skeleton.h"
+#include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
-
+#include "xattrhandle.h"
 //Problem of making attributes PERSIST.
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
+
+struct x_value *create_xattr_struct (int app_id){
+  struct x_value *xval;
+  xval = kzalloc(sizeof(struct x_value),GFP_KERNEL);
+  if (!xval){
+      printk(KERN_INFO "xattrs alloc failed");
+      return ERR_PTR(-ENOMEM);
+  }
+  xval->appid = app_id;
+  xval->perms = 0xCAFEBABE;
+  return 0;
+}
+
 
 //Basic check of files being accessed as a test function
 
@@ -105,7 +118,7 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSM: Freeing security for inode %lu\n", file->i_ino);
+	printk(KERN_DEBUG "Skeleton LSMv4: Freeing security for inode %lu\n", file->i_ino);
         free_nest(wrapper);
         file->i_security = NULL;
     }
@@ -114,15 +127,30 @@ void skl_inode_free(struct inode *file) { //Free file security field
 static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to actually put this on disk
     struct fl_nest *nest;
     
-    if (!node)
+    if (!node){
         return -EINVAL;
-        
+    }
     nest = set_fl(node);  
-    if (IS_ERR(nest))
+    if (IS_ERR(nest)){
         return PTR_ERR(nest);
-        
+    }
     return 0;
 }
+
+//Let's document!
+//qstr is a custom struct for a string that has the hash?
+//Xattrs are used in some sort of odd callback that's not the direct implementation,but looks like some type of VFS abstraction
+static int skl_init_security(struct inode *node, struct inode *dir, const struct qstr *qstr,const char **name,void **value,size_t *len){
+  *name = "security.skl";
+  struct x_value *new = create_xattr_struct(22);
+  if (IS_ERR(new)){
+    return PTR_ERR(new);
+  }
+  *value = new;
+  *len = sizeof(struct x_value);
+
+  return 0;
+} 
 
 //File structs are created when?
 //best guess is open,pipe and socket
@@ -137,6 +165,7 @@ static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to a
 static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_free_security, skl_inode_free),
     LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inode),
+    LSM_HOOK_INIT(inode_init_security, skl_init_security),
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
