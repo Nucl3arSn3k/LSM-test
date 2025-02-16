@@ -24,7 +24,7 @@ struct x_value *create_xattr_struct (int app_id){
   }
   xval->appid = app_id;
   xval->perms = 0xCAFEBABE;
-  return 0;
+  return xval;
 }
 
 
