@@ -9,12 +9,19 @@
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
 #include <linux/init.h>
-#include "skeleton.h" //Not sure if this is actually being used,but I suspect not
+#include "skeleton.h" //Not actually used, just remove later
 #include "file.h"
 #include "xattrhandle.h"
 //Problem of making attributes PERSIST.
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 
+struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
+  .lbs_inode = sizeof(struct fl_nest),
+
+};
+
+
+//Solving that problem, I'm creating a struct for my xattrs
 struct x_value *create_xattr_struct (int app_id){
   struct x_value *xval;
   xval = kzalloc(sizeof(struct x_value),GFP_KERNEL);
@@ -24,7 +31,7 @@ struct x_value *create_xattr_struct (int app_id){
   }
   xval->appid = app_id;
   xval->perms = 0xCAFEBABE;
-  return xval;
+  return xval; //You absolute MORON!!!
 }
 
 
@@ -72,22 +79,19 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 	        return NULL;
     	}
 	int app_id = 0xDEADBEEF;
-	struct fl_nest *contained; //fl = file label
-	contained = kzalloc(sizeof(struct fl_nest),GFP_KERNEL);
-	if(!contained){
-		ERR_PTR(-ENOMEM);
-	}
+	struct fl_nest *contained = node->i_security; //fl = file label
+	
+	
 	spin_lock_init(&contained->lock);
 	struct fl_min *pandora = create_label_min(app_id);
 	if(IS_ERR(pandora)){
-		kfree(contained);
 		return ERR_PTR(PTR_ERR(pandora));
 	}
 	spin_lock(&contained->lock);
 	rcu_assign_pointer(contained->min,pandora);
 	spin_unlock(&contained->lock);
 	
-	node->i_security = contained;
+	 //= contained; //TODO:Modify for blob utilization
 
 	return contained;
 }
@@ -101,7 +105,7 @@ void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
         if (minl) {
             put_min(minl);  // This will handle the inner label cleanup
         }
-        kfree(wrapper);
+        //kfree(wrapper);
     }
 }
 
@@ -119,8 +123,9 @@ void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
 	printk(KERN_DEBUG "Skeleton LSMv4: Freeing security for inode %lu\n", file->i_ino);
+        
         free_nest(wrapper);
-        file->i_security = NULL;
+        //file->i_security = NULL;
     }
 }
 
@@ -139,10 +144,11 @@ static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to a
 
 //Let's document!
 //qstr is a custom struct for a string that has the hash?
-//Xattrs are used in some sort of odd callback that's not the direct implementation,but looks like some type of VFS abstraction
+//Xattrs are used in some sort of odd callback that's not the direct implementation,but looks like some type of VFS abstraction over EXT4,NTFS,what have you
+//dir and node fields on inode struct (obviously) 
 static int skl_init_security(struct inode *node, struct inode *dir, const struct qstr *qstr,const char **name,void **value,size_t *len){
-  *name = "security.skl";
-  struct x_value *new = create_xattr_struct(22);
+  *name = "security.skl"; //Name set
+  struct x_value *new = create_xattr_struct(22); //Value set
   if (IS_ERR(new)){
     return PTR_ERR(new);
   }
@@ -181,4 +187,5 @@ static int __init sk_init(void)
 DEFINE_LSM(can_exec_init) = {
     .init = sk_init,
     .name = "skeleton",
+    .blobs = &skeleton_blob_sizes,
 };
