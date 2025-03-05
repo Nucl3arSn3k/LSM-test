@@ -19,6 +19,11 @@ struct x_value{ //Just a custom struct for XATTRS
       unsigned int perms; //Stores perms
 };
 
+struct process_attatched{ //Security field for process filler
+  int appid;
+  unsigned int perms;
+
+};
 
 
 struct fl_nest{
