@@ -21,7 +21,8 @@ struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
 
 };
 
-
+//Configure global atomic for incrementation
+static atomic_t app_id_increment = ATOMIC_INIT(1);
 //Solving that problem, I'm creating a struct for my xattrs
 struct x_value *create_xattr_struct (int app_id){
   struct x_value *xval;
@@ -123,7 +124,7 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSMv6: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+	printk(KERN_DEBUG "Skeleton LSMv7: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
         free_nest(wrapper);
         //file->i_security = NULL;
@@ -144,24 +145,29 @@ static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to a
 }
 
 
-static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags){ //Allocate task security struct
+static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags){ //Allocate task security struct with appid and perms
   if (!task){
     return -EINVAL;
   }
   struct process_attatched *contained; 
   contained = task->security;
-  contained->appid = 1;
+  contained->appid = atomic_inc_return(&app_id_increment);
   contained->perms = 42;
   
+
+
   if (IS_ERR(contained)){
     return PTR_ERR(contained);
   }
+
+  //Now setting clone flags to determine rules for fork
+  printk(KERN_INFO "Process %s assigned appID %d\n",task->comm,contained->appid);
   printk(KERN_INFO "Security structure allocated for task %s\n",task->comm); //Should be able to directly grab from comm field
   return 0;
 
 }
 
-static void skl_procsec_free(struct task_struct *task){
+static void skl_free_procsec(struct task_struct *task){ //Freeing task security struct. Should be handled by allocated blob
   struct process_attatched *label = task->security;
   printk("Freeing appid security structure");
 
@@ -197,7 +203,7 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
   *value = new; //passed back as void. Implict cast?
   *len = sizeof(struct x_value);
  //Does it expect pointer to data structure and size?
-  printk("Setting XATTR for task %s on inode %lu,id value %d\n",mytask->comm,node->i_ino,new->appid);
+  printk(KERN_INFO "Setting XATTR for task %s on inode %lu,id value %d\n",mytask->comm,node->i_ino,new->appid);
 
   return 0;
 } 
@@ -217,7 +223,7 @@ static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inode),
     LSM_HOOK_INIT(inode_init_security, skl_init_security),
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
-    LSM_HOOK_INIT(task_free,skl_procsec_free),
+    LSM_HOOK_INIT(task_free,skl_free_procsec),
     
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
