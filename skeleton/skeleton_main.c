@@ -65,7 +65,8 @@ static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bi
   
   //Just appID matching
   
-  printk(KERN_INFO "Skeleton LSM: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid
+  printk(KERN_INFO "Skeleton LSM: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid,f_label->appid);
+  
   return -1;
 }
 
@@ -263,9 +264,13 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 int skl_file_open(struct file *file){
   
   struct inode *asoc_node = file->f_inode;
-  int res = skl_inode_perms(asoc_node); 
-
-
+  int res = skl_inode_perms(asoc_node);
+  if (res != 0){
+    printk(KERN_INFO "Skeleton LSM: Access denied for %s ",file->f_path.dentry->d_name.name);
+    return res;
+  }
+  printk(KERN_INFO "Skeleton LSM: Access granted for %s",file->f_path.dentry->d_name.name);
+  return 0; 
 }
 
 //File structs are created when?
