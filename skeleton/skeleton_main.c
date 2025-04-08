@@ -21,8 +21,16 @@ struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
 
 };
 
-//Configure global atomic for incrementation
-static atomic_t app_id_increment = ATOMIC_INIT(1);
+
+int appid_creator(void){ //Config process IDs. What differing approach should we take
+  pid_t pid;
+  pid = task_pid_nr(current);
+  
+  int app_id = pid +100;
+  return app_id;
+}
+
+
 //Solving that problem, I'm creating a struct for my xattrs
 struct x_value *create_xattr_struct (int app_id){
   struct x_value *xval;
@@ -32,10 +40,47 @@ struct x_value *create_xattr_struct (int app_id){
       return ERR_PTR(-ENOMEM);
   }
   xval->appid = app_id;
-  xval->perms = 0xCAFEBABE;
+  xval->perms = SKELETON_RW; //More appropriate base16 teststr
   return xval; //You absolute MORON!!!
 }
 
+
+static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
+  struct fl_nest *inode_sec = get_fl(inode);
+  struct process_attatched *process_sec = current->security;
+  
+  if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
+    return 0;
+  }
+  rcu_read_lock();
+  struct fl_min *f_label = rcu_dereference(inode_sec->min); //Shouldn't be null
+  if (process_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
+    return 0;
+  }
+  
+  if (process_sec->appid == f_label->appid){ //Allow read. Need to find hook for filesystem read/write
+    
+    return 0;
+  }
+  
+  //Just appID matching
+  
+  printk(KERN_INFO "Skeleton LSM: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid
+  return -1;
+}
+
+
+char* serialize_xattr(struct x_value *xval) {
+    // Allocate memory for the serialized string
+    char *buffer = kmalloc(32, GFP_KERNEL);
+    if (!buffer) {
+        printk(KERN_INFO "serialization buffer allocation failed");
+        return ERR_PTR(-ENOMEM);
+    }
+    
+    snprintf(buffer, 32, "%d:%x", xval->appid, xval->perms);
+    return buffer;
+}
 
 //Basic check of files being accessed as a test function
 
@@ -80,7 +125,7 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 	        printk(KERN_INFO "Skeleton LSM: Skipping label during early boot\n");
 	        return NULL;
     	}
-	int app_id = 0xDEADBEEF; //Sets to this instead of real APPID
+	int app_id = appid_creator(); //Swapped for real appid creation
 	struct fl_nest *contained = node->i_security; //fl = file label
 	
 	
@@ -124,7 +169,7 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSMv7: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+	printk(KERN_DEBUG "Skeleton LSMv8: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
         free_nest(wrapper);
         //file->i_security = NULL;
@@ -151,7 +196,8 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
   }
   struct process_attatched *contained; 
   contained = task->security;
-  contained->appid = atomic_inc_return(&app_id_increment);
+  //atomic_inc_return(&app_id_increment)
+  contained->appid = appid_creator();
   contained->perms = 42;
   
 
@@ -196,17 +242,31 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
     printk(KERN_INFO "Using fallback appid %d from task %s\n",hard,mytask->comm);
   }
   struct x_value *new = create_xattr_struct(hard); //Value set from hard
+  char* vals = serialize_xattr(new);
+  
   
   if (IS_ERR(new)){
     return PTR_ERR(new);
   }
-  *value = new; //passed back as void. Implict cast?
-  *len = sizeof(struct x_value);
+  int stored_appid = new->appid;
+  kfree(new);
+  *value = vals; //passed back as void. Implict cast?
+  *len = strlen(vals) + 1;
  //Does it expect pointer to data structure and size?
-  printk(KERN_INFO "Setting XATTR for task %s on inode %lu,id value %d\n",mytask->comm,node->i_ino,new->appid);
+  printk(KERN_INFO "Setting XATTR for task %s on inode %lu, id value %d\n", 
+           mytask->comm, node->i_ino, stored_appid);
 
   return 0;
 } 
+
+
+int skl_file_open(struct file *file){
+  
+  struct inode *asoc_node = file->f_inode;
+  int res = skl_inode_perms(asoc_node); 
+
+
+}
 
 //File structs are created when?
 //best guess is open,pipe and socket
