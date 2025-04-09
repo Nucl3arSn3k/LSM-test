@@ -261,16 +261,37 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 } 
 
 
-int skl_file_open(struct file *file){
-  
-  struct inode *asoc_node = file->f_inode;
-  int res = skl_inode_perms(asoc_node);
-  if (res != 0){
-    printk(KERN_INFO "Skeleton LSM: Access denied for %s ",file->f_path.dentry->d_name.name);
-    return res;
-  }
-  printk(KERN_INFO "Skeleton LSM: Access granted for %s",file->f_path.dentry->d_name.name);
-  return 0; 
+int skl_file_open(struct file *file) {
+   
+    if (system_state < SYSTEM_RUNNING) {
+        return 0;
+    }
+    if (!file) {
+        return 0;
+    }
+    //Defensive programming
+    if (!file->f_inode) {
+        return 0;
+    }
+    //Confirm dentry exists
+    const char *name = "(unknown)";
+    if (file->f_path.dentry && file->f_path.dentry->d_name.name) {
+        name = file->f_path.dentry->d_name.name;
+    }
+    
+    int res = 0;
+    //Only call permcheck when safe
+    struct fl_nest *inode_sec = get_fl(file->f_inode);
+    struct process_attatched *process_sec = current ? current->security : NULL;
+    if (inode_sec && process_sec) {
+        res = skl_inode_perms(file->f_inode);
+    }
+    if (res != 0) {
+        printk(KERN_INFO "SkeletonLSMv10: Access denied for %s", name);
+        return res;
+    }
+    printk(KERN_INFO "SkeletonLSMv10: Access granted for %s", name);
+    return 0;
 }
 
 //File structs are created when?
