@@ -170,7 +170,7 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSMv8: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+	printk(KERN_DEBUG "Skeleton LSMv10: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
         free_nest(wrapper);
         //file->i_security = NULL;
