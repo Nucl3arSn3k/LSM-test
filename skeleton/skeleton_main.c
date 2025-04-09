@@ -47,7 +47,7 @@ struct x_value *create_xattr_struct (int app_id){
 
 static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
   struct fl_nest *inode_sec = get_fl(inode);
-  struct process_attatched *process_sec = current->security;
+  struct process_attatched *process_sec = current->security; //Fix this. How do I access MY BLOB?
   
   if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
     return 0;
@@ -260,8 +260,16 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
   return 0;
 } 
 
+/*
+Function: skl_file_open()
+Description: This checks the appid on the inode associated with the file along with the appid of the process accessing. If they match,return 0,if not return 1 
+Inputs: file pointer.
+Outputs:None
 
-int skl_file_open(struct file *file) {
+
+
+*/
+int skl_file_open(struct file *file) { 
    
     if (system_state < SYSTEM_RUNNING) {
         return 0;
