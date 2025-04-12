@@ -47,7 +47,7 @@ struct x_value *create_xattr_struct (int app_id){
 
 static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
   struct fl_nest *inode_sec = get_fl(inode);
-  struct process_attatched *process_sec = current->security; //Fix this. How do I access MY BLOB?
+  struct process_attatched *process_sec = current->security; //grabs process security field
   
   if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
     return 0;
@@ -65,7 +65,7 @@ static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bi
   
   //Just appID matching
   
-  printk(KERN_INFO "Skeleton LSM: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid,f_label->appid);
+  printk(KERN_INFO "Skeleton LSMv11: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid,f_label->appid);
   
   return -1;
 }
@@ -123,7 +123,7 @@ struct fl_min *get_min(struct fl_min *label) {
 
 struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 	if (system_state < SYSTEM_RUNNING) {
-	        printk(KERN_INFO "Skeleton LSM: Skipping label during early boot\n");
+	        printk(KERN_INFO "Skeleton LSMv11: Skipping label during early boot\n");
 	        return NULL;
     	}
 	int app_id = appid_creator(); //Swapped for real appid creation
@@ -170,7 +170,7 @@ struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_nest *wrapper = file->i_security;
     if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSMv10: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+	printk(KERN_DEBUG "Skeleton LSMv11: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
         free_nest(wrapper);
         //file->i_security = NULL;
@@ -195,8 +195,7 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
   if (!task){
     return -EINVAL;
   }
-  struct process_attatched *contained; 
-  contained = task->security;
+  struct process_attatched *contained = skeleton_task(task);//Blob style assignment
   //atomic_inc_return(&app_id_increment)
   contained->appid = appid_creator();
   contained->perms = 42;
@@ -260,16 +259,8 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
   return 0;
 } 
 
-/*
-Function: skl_file_open()
-Description: This checks the appid on the inode associated with the file along with the appid of the process accessing. If they match,return 0,if not return 1 
-Inputs: file pointer.
-Outputs:None
 
-
-
-*/
-int skl_file_open(struct file *file) { 
+int skl_file_open(struct file *file) { //Access control for file open
    
     if (system_state < SYSTEM_RUNNING) {
         return 0;
@@ -295,10 +286,10 @@ int skl_file_open(struct file *file) {
         res = skl_inode_perms(file->f_inode);
     }
     if (res != 0) {
-        printk(KERN_INFO "SkeletonLSMv10: Access denied for %s", name);
+        printk(KERN_INFO "SkeletonLSMv11: Access denied for %s", name);
         return res;
     }
-    printk(KERN_INFO "SkeletonLSMv10: Access granted for %s", name);
+    printk(KERN_INFO "SkeletonLSMv11: Access granted for %s", name);
     return 0;
 }
 
@@ -318,7 +309,7 @@ static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_init_security, skl_init_security),
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
     LSM_HOOK_INIT(task_free,skl_free_procsec),
-    
+    //LSM_HOOK_INIT(file_open,skl_file_open), Dummied out due to segfault
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
