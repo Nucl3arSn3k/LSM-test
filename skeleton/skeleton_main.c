@@ -47,7 +47,7 @@ struct x_value *create_xattr_struct (int app_id){
 
 static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
   struct fl_nest *inode_sec = get_fl(inode);
-  struct process_attatched *process_sec = current->security; //grabs process security field
+  struct process_attatched *process_sec = skeleton_task(current); //grabs process security field
   
   if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
     return 0;
@@ -230,10 +230,10 @@ static void skl_free_procsec(struct task_struct *task){ //Freeing task security 
 static int skl_init_security(struct inode *node, struct inode *dir, const struct qstr *qstr,const char **name,void **value,size_t *len){
   *name = "security.skl"; //Name set
   struct task_struct *mytask = current; //use current macro?
-  struct process_attatched *locstruct; //Should probably nullcheck this
+  struct process_attatched *locstruct=NULL; //Should probably nullcheck this
   int hard = 0;
-  if(mytask && mytask->security){
-    locstruct = mytask->security;
+  if(mytask){
+    locstruct = skeleton_task(mytask);
     hard = locstruct->appid;
     printk(KERN_INFO "Got appid %d from task %s\n",hard,mytask->comm);
   }
@@ -281,7 +281,7 @@ int skl_file_open(struct file *file) { //Access control for file open
     int res = 0;
     //Only call permcheck when safe
     struct fl_nest *inode_sec = get_fl(file->f_inode);
-    struct process_attatched *process_sec = current ? current->security : NULL;
+    struct process_attatched *process_sec = current ? skeleton_task(current) : NULL;
     if (inode_sec && process_sec) {
         res = skl_inode_perms(file->f_inode);
     }
