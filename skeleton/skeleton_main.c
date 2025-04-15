@@ -309,7 +309,7 @@ static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_init_security, skl_init_security),
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
     LSM_HOOK_INIT(task_free,skl_free_procsec),
-    //LSM_HOOK_INIT(file_open,skl_file_open), Dummied out due to segfault
+    LSM_HOOK_INIT(file_open,skl_file_open), 
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
