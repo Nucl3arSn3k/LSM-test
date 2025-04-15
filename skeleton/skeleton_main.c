@@ -160,7 +160,7 @@ void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
 struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
     struct fl_nest *reqfl;
     rcu_read_lock();
-    reqfl = rcu_dereference(skeleton_inode(node));//tweaking to safe call
+    reqfl = skeleton_inode(node);//tweaking to safe call
     rcu_read_unlock();
     return reqfl;
 }
