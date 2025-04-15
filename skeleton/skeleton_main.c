@@ -50,23 +50,30 @@ static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bi
   struct process_attatched *process_sec = skeleton_task(current); //grabs process security field
   
   if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
-    return 0;
+    printk("System not booted");
+    return -1;
   }
   rcu_read_lock();
   struct fl_min *f_label = rcu_dereference(inode_sec->min); //Shouldn't be null
+  if (!f_label){
+    printk("f_label is null");
+    rcu_read_unlock();
+    return -1;
+  }
   if (process_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
+    rcu_read_unlock();
     return 0;
   }
   
   if (process_sec->appid == f_label->appid){ //Allow read. Need to find hook for filesystem read/write
-    
+    rcu_read_unlock();
     return 0;
   }
   
   //Just appID matching
   
   printk(KERN_INFO "Skeleton LSMv11: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid,f_label->appid);
-  
+  rcu_read_unlock();
   return -1;
 }
 
