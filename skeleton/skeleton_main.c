@@ -50,14 +50,13 @@ static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bi
   struct process_attatched *process_sec = skeleton_task(current); //grabs process security field
   
   if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
-    printk("System not booted");
-    return -1;
+    printk("System not booted"); //Pass the check by default WHILE system boots
+    return 0;
   }
   rcu_read_lock();
   struct fl_min *f_label = rcu_dereference(inode_sec->min); //Shouldn't be null
   if (!f_label){
-    printk("f_label is null");
-    rcu_read_unlock();
+    panic("f_label is null");
     return -1;
   }
   if (process_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
