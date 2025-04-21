@@ -266,37 +266,13 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 } 
 
 
-int skl_file_open(struct file *file) { //Access control for file open
-   
-    if (system_state < SYSTEM_RUNNING) {
-        return 0;
-    }
-    if (!file) {
-        return 0;
-    }
-    //Defensive programming
-    if (!file->f_inode) {
-        return 0;
-    }
-    //Confirm dentry exists
-    const char *name = "(unknown)";
-    if (file->f_path.dentry && file->f_path.dentry->d_name.name) {
-        name = file->f_path.dentry->d_name.name;
-    }
-    
-    int res = 0;
-    //Only call permcheck when safe
-    struct fl_nest *inode_sec = get_fl(file->f_inode);
-    struct process_attatched *process_sec = current ? skeleton_task(current) : NULL;
-    if (inode_sec && process_sec) {
-        res = skl_inode_perms(file->f_inode);
-    }
-    if (res != 0) {
-        printk(KERN_INFO "SkeletonLSMv11: Access denied for %s", name);
-        return res;
-    }
-    printk(KERN_INFO "SkeletonLSMv11: Access granted for %s", name);
-    return 0;
+int skl_inode_permission(struct inode *node, int mask){
+	if (!node){
+		return 0;
+	}
+	else{
+		return skl_inode_perms(node);
+	}
 }
 
 //File structs are created when?
@@ -315,7 +291,7 @@ static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_init_security, skl_init_security),
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
     LSM_HOOK_INIT(task_free,skl_free_procsec),
-    LSM_HOOK_INIT(file_open,skl_file_open), 
+    LSM_HOOK_INIT(inode_permission, skl_inode_permission),
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
