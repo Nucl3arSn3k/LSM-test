@@ -134,6 +134,9 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
     	}
 	int app_id = appid_creator(); //Swapped for real appid creation
 	struct fl_nest *contained = skeleton_inode(node); //fl = file label
+	if(!contained){
+		printk(KERN_INFO "Skeleton LSMv11: skeleton_inode returned NULL\n");
+	}
 	
 	
 	spin_lock_init(&contained->lock);
