@@ -133,7 +133,7 @@ struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
 	        return NULL;
     	}
 	int app_id = appid_creator(); //Swapped for real appid creation
-	struct fl_nest *contained = node->i_security; //fl = file label
+	struct fl_nest *contained = skeleton_inode(node); //fl = file label
 	
 	
 	spin_lock_init(&contained->lock);
