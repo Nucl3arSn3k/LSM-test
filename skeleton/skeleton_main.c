@@ -16,7 +16,7 @@
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 //Creates a blob so the nested structure plays nice with other security modules
 struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
-  .lbs_inode = sizeof(struct fl_nest),
+  .lbs_inode = sizeof(struct fl_min),
   .lbs_task = sizeof(struct process_attatched),
 
 };
@@ -46,33 +46,28 @@ struct x_value *create_xattr_struct (int app_id){
 
 
 static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
-  struct fl_nest *inode_sec = get_fl(inode);
-  struct process_attatched *process_sec = skeleton_task(current); //grabs process security field
+  struct fl_min *inode_sec = skeleton_inode(inode);
+  struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
   
-  if(!inode_sec || !process_sec|| system_state < SYSTEM_RUNNING){
+  if(!proc_sec || !inode_sec|| system_state < SYSTEM_RUNNING){
     printk("System not booted"); //Pass the check by default WHILE system boots
     return 0;
   }
-  rcu_read_lock();
-  struct fl_min *f_label = rcu_dereference(inode_sec->min); //Shouldn't be null
-  if (!f_label){
-    panic("f_label is null");
-    return -1;
-  }
-  if (process_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
-    rcu_read_unlock();
+  
+  //struct fl_min *f_label = inode_sec->min; //Shouldn't be null
+  if (proc_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
+    printk(KERN_INFO "Skeleton LSMv12:Process has root appid,allow access");
     return 0;
   }
   
-  if (process_sec->appid == f_label->appid){ //Allow read. Need to find hook for filesystem read/write
-    rcu_read_unlock();
+  if (inode_sec->appid == proc_sec->appid){ //Allow read. Need to find hook for filesystem read/write
     return 0;
   }
   
   //Just appID matching
   
-  printk(KERN_INFO "Skeleton LSMv11: access denied. Process with appid %d failed to access file with appid %d",process_sec->appid,f_label->appid);
-  rcu_read_unlock();
+  printk(KERN_INFO "Skeleton LSMv12: access denied. Process with appid %d failed to access file with appid %d",proc_sec->appid,inode_sec->appid);
+  
   return -1;
 }
 
@@ -91,113 +86,36 @@ char* serialize_xattr(struct x_value *xval) {
 
 //Basic check of files being accessed as a test function
 
-struct fl_min *create_label_min (int app_id){
-	struct fl_min *minl;
-	minl = kzalloc(sizeof(struct fl_min),GFP_KERNEL);
-	if (!minl){
-		printk(KERN_INFO "alloc failed");
-		return ERR_PTR(-ENOMEM);
-	}
-	minl->appid = app_id;
-	atomic_set(&minl->ref_count,1);
-	return minl;
-}
-
-
-void free_min(struct fl_min *label){ //Free label
-	if (label){
-		kfree(label);
-	}
-}
-
-
-void put_min(struct fl_min *label) { //decrement and check label,free if 0
-    if (label && atomic_dec_and_test(&label->ref_count)) {
-        free_min(label);
-    }
-}
-
-// New function to get and increment atomic reference count
-struct fl_min *get_min(struct fl_min *label) {
-    if (label) {
-        atomic_inc(&label->ref_count);
-    }
-    return label;
-}
- 
-
-
-struct fl_nest *set_fl(struct inode *node){ //Create the holding struct
-	if (system_state < SYSTEM_RUNNING) {
-	        printk(KERN_INFO "Skeleton LSMv11: Skipping label during early boot\n");
-	        return NULL;
-    	}
-	int app_id = appid_creator(); //Swapped for real appid creation
-	struct fl_nest *contained = skeleton_inode(node); //fl = file label
-	if(!contained){
-		printk(KERN_INFO "Skeleton LSMv11: skeleton_inode returned NULL\n");
-	}
-	
-	
-	spin_lock_init(&contained->lock);
-	struct fl_min *pandora = create_label_min(app_id);
-	if(IS_ERR(pandora)){
-		return ERR_PTR(PTR_ERR(pandora));
-	}
-	spin_lock(&contained->lock);
-	rcu_assign_pointer(contained->min,pandora);
-	spin_unlock(&contained->lock);
-	
-	 //= contained; //TODO:Modify for blob utilization
-
-	return contained;
-}
-
-
-
-void free_nest(struct fl_nest *wrapper) { //Outer label cleanup
-    synchronize_rcu();
-    if (wrapper) {
-        struct fl_min *minl = rcu_dereference(wrapper->min);
-        if (minl) {
-            put_min(minl);  // This will handle the inner label cleanup
-        }
-        //kfree(wrapper);
-    }
-}
-
-struct fl_nest *get_fl(struct inode *node) { //Get a label if needed
-    struct fl_nest *reqfl;
-    rcu_read_lock();
-    reqfl = skeleton_inode(node);//tweaking to safe call
-    rcu_read_unlock();
-    return reqfl;
-}
-
 
 
 void skl_inode_free(struct inode *file) { //Free file security field
-    struct fl_nest *wrapper = file->i_security;
-    if (wrapper) {
-	printk(KERN_DEBUG "Skeleton LSMv11: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+    struct fl_min *actual = skeleton_inode(file); //Swapping away from nest
+    if (actual) {
+	printk(KERN_DEBUG "Skeleton LSMv12: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
-        free_nest(wrapper);
+        //free_nest(wrapper);
         //file->i_security = NULL;
     }
 }
-//Allocate the INODE security field
-static int skl_alloc_inode(struct inode *node) { //Extended attribute calls to actually put this on disk
-    struct fl_nest *nest;
-    
-    if (!node){
-        return -EINVAL;
-    }
-    nest = set_fl(node);  
-    if (IS_ERR(nest)){
-        return PTR_ERR(nest);
-    }
-    return 0;
+
+
+static int skl_alloc_inodesimp(struct inode *inode){ //Simplified inode alloc
+  if(!inode){
+    return -EINVAL;
+  }
+  
+  struct fl_min *outer = skeleton_inode(inode);
+  outer->appid = 0;
+  outer->perms = 5; //read write executex
+  if (IS_ERR(outer)){
+    return PTR_ERR(outer);
+  }
+  
+  printk(KERN_INFO "Inode %lu assigned appID %d\n",inode->i_ino,outer->appid);
+  printk(KERN_INFO "Security structure allocated for task %lu\n",inode->i_ino);
+  return 0;
 }
+
 
 
 static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags){ //Allocate task security struct with appid and perms
@@ -290,7 +208,7 @@ int skl_inode_permission(struct inode *node, int mask){
 // Updated hook list
 static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(inode_free_security, skl_inode_free),
-    LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inode),
+    LSM_HOOK_INIT(inode_alloc_security, skl_alloc_inodesimp),
     LSM_HOOK_INIT(inode_init_security, skl_init_security),
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
     LSM_HOOK_INIT(task_free,skl_free_procsec),
