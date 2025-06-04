@@ -18,7 +18,6 @@
 struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
   .lbs_inode = sizeof(struct fl_min),
   .lbs_task = sizeof(struct process_attatched),
-
 };
 
 
@@ -26,7 +25,7 @@ int appid_creator(void){ //Config process IDs. What differing approach should we
   pid_t pid;
   pid = task_pid_nr(current);
   
-  int app_id = pid +100;
+  int app_id = 0;
   return app_id;
 }
 
@@ -45,29 +44,39 @@ struct x_value *create_xattr_struct (int app_id){
 }
 
 
-static int skl_inode_perms(struct inode *inode){ //Need to modify t deal with bits. Find filesystem hook
-  struct fl_min *inode_sec = skeleton_inode(inode);
-  struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
-  
-  if(!proc_sec || !inode_sec|| system_state < SYSTEM_RUNNING){
+static int skl_inode_perms(struct inode *inode){ 
+  if(system_state < SYSTEM_RUNNING || current->pid<=1000){ //try noty blocking init processes
     printk("System not booted"); //Pass the check by default WHILE system boots
     return 0;
   }
   
+  struct fl_min *inode_sec = skeleton_inode(inode);
+  struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
+  //
+  if (!proc_sec){
+    panic("The process shouldn't be null! %d",current->pid);
+  }
+  if (current->flags & PF_KTHREAD){ //pthread bit is set
+    printk("Not labeling a kthread , nice try.");
+    return 0;
+  }
+  if (!inode_sec){
+    panic("The inode security field should never be null if inode is initalized!");
+  }
   //struct fl_min *f_label = inode_sec->min; //Shouldn't be null
-  if (proc_sec->appid == 0){ //allow the op,doesn't matter what the perm bits are
-    printk(KERN_INFO "Skeleton LSMv12:Process has root appid,allow access");
+  if (proc_sec->appid == 0 || proc_sec->appid == 100){ //allow the op,doesn't matter what the perm bits are
+    printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d,allow access",proc_sec->appid);
     return 0;
   }
   
   if (inode_sec->appid == proc_sec->appid){ //Allow read. Need to find hook for filesystem read/write
+    printk("Skeleton LSMv13: Read allowed.");
     return 0;
   }
   
   //Just appID matching
   
-  printk(KERN_INFO "Skeleton LSMv12: access denied. Process with appid %d failed to access file with appid %d",proc_sec->appid,inode_sec->appid);
-  
+  printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d",proc_sec->appid,inode_sec->appid);
   return -1;
 }
 
@@ -91,7 +100,7 @@ char* serialize_xattr(struct x_value *xval) {
 void skl_inode_free(struct inode *file) { //Free file security field
     struct fl_min *actual = skeleton_inode(file); //Swapping away from nest
     if (actual) {
-	printk(KERN_DEBUG "Skeleton LSMv12: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
+	printk(KERN_DEBUG "Skeleton LSMv13: Freeing security for inode %lu\n", file->i_ino); //Tweak v num with everybuild
         
         //free_nest(wrapper);
         //file->i_security = NULL;
@@ -105,7 +114,7 @@ static int skl_alloc_inodesimp(struct inode *inode){ //Simplified inode alloc
   }
   
   struct fl_min *outer = skeleton_inode(inode);
-  outer->appid = 0;
+  outer->appid = 0; //testing ids
   outer->perms = 5; //read write executex
   if (IS_ERR(outer)){
     return PTR_ERR(outer);
@@ -141,7 +150,7 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
 }
 
 static void skl_free_procsec(struct task_struct *task){ //Freeing task security struct. Should be handled by allocated blob
-  struct process_attatched *label = task->security;
+  //struct process_attatched *label = task->security;
   printk("Freeing appid security structure");
 
 
@@ -189,7 +198,7 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 
 int skl_inode_permission(struct inode *node, int mask){
 	if (!node){
-		return 0;
+		return 0; //Permission granted
 	}
 	else{
 		return skl_inode_perms(node);
@@ -225,7 +234,7 @@ static int __init sk_init(void)
     return 0;
 }
 
-DEFINE_LSM(can_exec_init) = {
+DEFINE_LSM(sk_init) = {
     .init = sk_init,
     .name = "skeleton",
     .blobs = &skeleton_blob_sizes,
