@@ -231,6 +231,13 @@ static int __init sk_init(void)
     printk(KERN_INFO "Skeleton LSM loaded\n");
     security_add_hooks(skeleton_hooks, ARRAY_SIZE(skeleton_hooks), "Skeleton");
     printk(KERN_INFO "Hooks registered\n");
+    struct process_attatched *task_0;
+    task_0 = skeleton_task(current);
+    if (!task_0){
+	printk("inital task is null");
+    }
+    task_0->appid = 0;
+    task_0->perms = 22;
     return 0;
 }
 
