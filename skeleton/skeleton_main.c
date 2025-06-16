@@ -131,12 +131,13 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
   if (!task){
     return -EINVAL;
   }
+  struct process_attatched *current_proc = skeleton_task(current);
   struct process_attatched *contained = skeleton_task(task);//Blob style assignment
   //atomic_inc_return(&app_id_increment)
-  contained->appid = appid_creator();
+  //contained->appid = appid_creator();
   contained->perms = 42;
   
-
+  contained->appid = current_proc->appid;
 
   if (IS_ERR(contained)){
     return PTR_ERR(contained);
