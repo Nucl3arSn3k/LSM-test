@@ -5,7 +5,7 @@
 #include "file.h"
 extern struct lsm_blob_sizes skeleton_blob_sizes;
 
-static inline struct fl_nest *skeleton_inode(const struct inode *inode){
+static inline struct fl_min *skeleton_inode(const struct inode *inode){
   return inode->i_security + skeleton_blob_sizes.lbs_inode;
 }
 
