@@ -45,9 +45,9 @@ struct x_value *create_xattr_struct (int app_id){
 
 
 static int skl_inode_perms(struct inode *inode){ 
-  if(system_state < SYSTEM_RUNNING || current->pid<=1000){ //try noty blocking init processes
+  if(system_state < SYSTEM_RUNNING || current->pid<=0 || (current->pid > 0 && current->pid < 1000)){ //try noty blocking init processes
     printk("System not booted"); //Pass the check by default WHILE system boots
-    return 0;
+    return 0; //Check passes! Replace with a static constant
   }
   
   struct fl_min *inode_sec = skeleton_inode(inode);
@@ -65,7 +65,7 @@ static int skl_inode_perms(struct inode *inode){
   }
   //struct fl_min *f_label = inode_sec->min; //Shouldn't be null
   if (proc_sec->appid == 0 || proc_sec->appid == 100){ //allow the op,doesn't matter what the perm bits are
-    printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d,allow access",proc_sec->appid);
+    panic(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %ld,allow access",proc_sec->appid,inode_sec->appid,inode->i_ino); //Swapping to get panic
     return 0;
   }
   
@@ -236,6 +236,7 @@ static int __init sk_init(void)
     task_0 = skeleton_task(current);
     if (!task_0){
 	printk("inital task is null");
+    return -ENOMEM;
     }
     task_0->appid = 0;
     task_0->perms = 22;
