@@ -31,7 +31,7 @@ struct process_attatched{ //Security field for process filler
 //Function prototpying
 
 struct fl_min *create_label_min(int appid);
-struct fl_nest *get_fl(struct inode *node);
+
 void put_min(struct fl_min *label);
 void free_min(struct fl_min *label); //Free it
 #endif /* FILE.H */
