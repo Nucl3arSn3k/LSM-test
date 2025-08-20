@@ -9,6 +9,8 @@
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
 #include <linux/init.h>
+#include <linux/proc_fs.h>
+#include <linux/uaccess.h>
 #include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
 #include "xattrhandle.h"
@@ -46,7 +48,7 @@ struct x_value *create_xattr_struct (int app_id){
 
 static int skl_inode_perms(struct inode *inode){ 
   if(system_state < SYSTEM_RUNNING || current->pid<=0 || (current->pid > 0 && current->pid < 1000)){ //try noty blocking init processes
-    //printk("System not booted"); //Pass the check by default WHILE system boots
+    printk("System not booted"); //Pass the check by default WHILE system boots
     return 0; //Check passes! Replace with a static constant
   }
   
@@ -206,6 +208,7 @@ int skl_inode_permission(struct inode *node, int mask){
 	}
 }
 
+
 //File structs are created when?
 //best guess is open,pipe and socket
 //File descriptor is index into array of struct file pointers,access ctrl info is cached.
@@ -235,11 +238,12 @@ static int __init sk_init(void)
     struct process_attatched *task_0;
     task_0 = skeleton_task(current);
     if (!task_0){
-	printk("inital task is null");
-    return -ENOMEM;
+	    printk("inital task is null");
+      return -ENOMEM;
     }
     task_0->appid = 0;
     task_0->perms = 22;
+    static struct proc_dir_entry *skl_proc_entry;
     return 0;
 }
 
@@ -248,3 +252,4 @@ DEFINE_LSM(sk_init) = {
     .name = "skeleton",
     .blobs = &skeleton_blob_sizes,
 };
+
