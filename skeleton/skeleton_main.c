@@ -46,7 +46,7 @@ struct x_value *create_xattr_struct (int app_id){
 
 static int skl_inode_perms(struct inode *inode){ 
   if(system_state < SYSTEM_RUNNING || current->pid<=0 || (current->pid > 0 && current->pid < 1000)){ //try noty blocking init processes
-    printk("System not booted"); //Pass the check by default WHILE system boots
+    //printk("System not booted"); //Pass the check by default WHILE system boots
     return 0; //Check passes! Replace with a static constant
   }
   
