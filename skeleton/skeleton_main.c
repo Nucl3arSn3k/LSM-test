@@ -14,6 +14,7 @@
 #include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
 #include "xattrhandle.h"
+
 //Problem of making attributes PERSIST.
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 //Creates a blob so the nested structure plays nice with other security modules
@@ -22,6 +23,8 @@ struct lsm_blob_sizes skeleton_blob_sizes __ro_after_init = { //blob sizes set
   .lbs_task = sizeof(struct process_attatched),
 };
 
+// Proc entry for appid control
+static struct proc_dir_entry *skl_proc_entry;
 
 int appid_creator(void){ //Config process IDs. What differing approach should we take
   pid_t pid;
@@ -208,6 +211,20 @@ int skl_inode_permission(struct inode *node, int mask){
 	}
 }
 
+// Proc write function - skeleton implementation
+static ssize_t skl_proc_write(struct file *file, const char __user *buffer, 
+                             size_t count, loff_t *pos)
+{
+    
+    
+    return count;
+}
+
+// File operations for proc entry
+static struct file_operations skl_proc_fops = {
+    .owner = THIS_MODULE,
+    .write = skl_proc_write,
+};
 
 //File structs are created when?
 //best guess is open,pipe and socket
@@ -235,6 +252,7 @@ static int __init sk_init(void)
     printk(KERN_INFO "Skeleton LSM loaded\n");
     security_add_hooks(skeleton_hooks, ARRAY_SIZE(skeleton_hooks), "Skeleton");
     printk(KERN_INFO "Hooks registered\n");
+    
     struct process_attatched *task_0;
     task_0 = skeleton_task(current);
     if (!task_0){
@@ -243,13 +261,22 @@ static int __init sk_init(void)
     }
     task_0->appid = 0;
     task_0->perms = 22;
-    static struct proc_dir_entry *skl_proc_entry;
+    
+    // Create proc entry for appid control
+    skl_proc_entry = proc_create("skeleton_appid", 0666, NULL, &skl_proc_fops);
+    if (!skl_proc_entry) {
+        printk(KERN_ALERT "Error: Could not initialize /proc/skeleton_appid\n");
+        return -ENOMEM;
+    }
+    printk(KERN_INFO "Skeleton LSM: /proc/skeleton_appid created\n");
+    
     return 0;
 }
+
+
 
 DEFINE_LSM(sk_init) = {
     .init = sk_init,
     .name = "skeleton",
     .blobs = &skeleton_blob_sizes,
 };
-
