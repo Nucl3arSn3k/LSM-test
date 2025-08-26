@@ -30,7 +30,7 @@ int appid_creator(void){ //Config process IDs. What differing approach should we
 }
 
 int skel_set_proc(const char *name, void *value, size_t size) {
-	if (strcmp(name,"appid")==0){
+	if (strcmp(name,"current")==0){
 		//parse appid
 		int newval;
 		int v = kstrtoint((char *)value, 10, &newval);
@@ -52,7 +52,7 @@ int skel_set_proc(const char *name, void *value, size_t size) {
 
 
 int skel_get_proc(struct task_struct *p, const char *name, char **value) {
-	if (strcmp(name, "appid") == 0) {
+	if (strcmp(name, "current") == 0) {
 		struct process_attatched *proc_sec = skeleton_task(p);
 		if (!proc_sec)
             return -EINVAL;
