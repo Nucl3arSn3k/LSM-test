@@ -29,6 +29,47 @@ int appid_creator(void){ //Config process IDs. What differing approach should we
   return app_id;
 }
 
+int skel_set_proc(const char *name, void *value, size_t size) {
+	if (strcmp(name,"appid")==0){
+		//parse appid
+		int newval;
+		int v = kstrtoint((char *)value, 10, &newval);
+		if (v){
+			return -1;
+		}
+		struct process_attatched *proc_sec = skeleton_task(current);
+        if (!proc_sec)
+            return -EINVAL;
+		proc_sec->appid = newval;
+		printk(KERN_INFO "Process %s appid changed to %d\n", current->comm, newval);
+		return size;
+		
+	}
+	else {
+        return -EOPNOTSUPP; 
+    }
+}
+
+
+int skel_get_proc(struct task_struct *p, const char *name, char **value) {
+	if (strcmp(name, "appid") == 0) {
+		struct process_attatched *proc_sec = skeleton_task(p);
+		if (!proc_sec)
+            return -EINVAL;
+		char *buffer = kmalloc(16, GFP_KERNEL);
+        if (!buffer)
+            return -ENOMEM;
+
+		int r = sprintf(buffer,"%d",proc_sec->appid);
+		*value = buffer;
+
+		return r;
+	}
+	else {
+        return -EOPNOTSUPP; 
+    }
+}
+
 
 //Solving that problem, I'm creating a struct for my xattrs
 struct x_value *create_xattr_struct (int app_id){
@@ -131,7 +172,7 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
   if (!task){
     return -EINVAL;
   }
-  struct process_attatched *current_proc = skeleton_task(current);
+  struct process_attatched *current_proc = skeleton_task(current); 
   struct process_attatched *contained = skeleton_task(task);//Blob style assignment
   //atomic_inc_return(&app_id_increment)
   //contained->appid = appid_creator();
@@ -223,6 +264,8 @@ static struct security_hook_list skeleton_hooks[] = {
     LSM_HOOK_INIT(task_alloc,skl_alloc_procsec),
     LSM_HOOK_INIT(task_free,skl_free_procsec),
     LSM_HOOK_INIT(inode_permission, skl_inode_permission),
+	LSM_HOOK_INIT(getprocattr, skel_get_proc),
+	LSM_HOOK_INIT(setprocattr, skel_set_proc),
     //LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
     //LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
