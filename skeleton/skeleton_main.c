@@ -105,8 +105,8 @@ static int skl_inode_perms(struct inode *inode){
     panic("The inode security field should never be null if inode is initalized!");
   }
   //struct fl_min *f_label = inode_sec->min; //Shouldn't be null
-  if (proc_sec->appid == 0 || proc_sec->appid == 100){ //allow the op,doesn't matter what the perm bits are
-    panic(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %ld,allow access",proc_sec->appid,inode_sec->appid,inode->i_ino); //Swapping to get panic
+  if (proc_sec->appid == 0 || proc_sec->appid == 100){
+    printk(KERN_INFO "Skeleton LSMv13: Process has root appid of %d and inode appid %d along with inode number %ld, allow access\n", proc_sec->appid, inode_sec->appid, inode->i_ino);
     return 0;
   }
   
