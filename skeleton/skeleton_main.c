@@ -35,9 +35,19 @@ static int skl_inode_set_security(struct inode *inode,const char *name,
                                   const void *value,size_t size,int flags){
 
   if (strcmp(name,"appid") == 0){
+	long appid_l;
     struct fl_min *inode_sec = skeleton_inode(inode); //create struct
+	if (!value){
 
-    inode_sec->appid =
+		return -EINVAL;
+	}
+	char *strval = (char *)value;
+	int l = kstrtol(strval,10,appid_l);
+	if (l != 0){
+		return -EINVAL;
+	}
+
+    inode_sec->appid = (int)appid_l;
 
     return 0;
   }
