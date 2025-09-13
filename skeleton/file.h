@@ -1,7 +1,8 @@
 #ifndef _FILE_H_
 #define _FILE_H_
-#define SKELETON_READ 0x0002 //powers of 2
-#define SKELETON_WRITE 0x0008 //defining custom security fields here. Looks better this way
+#define SKELETON_READ 4 //powers of 2
+#define SKELETON_WRITE 2 //defining custom security fields here. Looks better this way
+#define SKELETON_EXECUTE 1
 
 #define SKELETON_RW (SKELETON_READ|SKELETON_WRITE) //Or of both,puts bits into order
 #include <linux/spinlock.h>
