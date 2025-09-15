@@ -17,7 +17,9 @@ struct fl_min{
 
 struct x_value{ //Just a custom struct for XATTRS
       int appid; //Stores the APPID or something
-      unsigned int perms; //Stores perms
+      int read_perm;
+	  int write_perm;
+	  int exec_perm;//Stores perms
 };
 
 struct process_attatched{ //Security field for process filler
