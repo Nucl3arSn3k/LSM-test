@@ -130,7 +130,9 @@ struct x_value *create_xattr_struct(int app_id)
 		return ERR_PTR(-ENOMEM);
 	}
 	xval->appid = app_id;
-	xval->perms = SKELETON_RW; //More appropriate base16 teststr
+	xval->read_perm = SKELETON_READ;
+	xval->write_perm= 0;
+	xval->exec_perm= 0;//More appropriate base16 teststr
 	return xval; //You absolute MORON!!!
 }
 
@@ -182,7 +184,7 @@ char *serialize_xattr(struct x_value *xval)
 		return ERR_PTR(-ENOMEM);
 	}
 
-	snprintf(buffer, 32, "%d:%x", xval->appid, xval->perms);
+	snprintf(buffer, 32, "%d:%d:%d:%d", xval->appid, xval->read_perm, xval->write_perm, xval->exec_perm);
 	return buffer;
 }
 
