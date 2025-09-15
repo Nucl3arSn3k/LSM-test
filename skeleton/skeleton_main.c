@@ -30,41 +30,7 @@ int appid_creator(void)
 	return app_id;
 }
 
-//Inode get and set here
-static int skl_inode_set_security(struct inode *inode,const char *name,
-                                  const void *value,size_t size,int flags){
 
-  if (strcmp(name,"appid") == 0){
-	long appid_l;
-    struct fl_min *inode_sec = skeleton_inode(inode); //create struct
-	if (!value){
-
-		return -EINVAL;
-	}
-	char *strval = (char *)value;
-	int l = kstrtol(strval,10,appid_l);
-	if (l != 0){
-		return -EINVAL;
-	}
-
-    inode_sec->appid = (int)appid_l;
-
-    return 0;
-  }
-  
-
-
-
-  return LSM_RET_DEFAULT(inode_setsecurity);
-}
-
-
-static int skl_inode_get_security(struct mnt_idmap *idmap,struct inode *inode,const char *name,void **buffer,
-                                  bool alloc){
-
-
-  return LSM_RET_DEFAULT(inode_getsecurity);                                  
-}
 
 
 
@@ -314,8 +280,8 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(task_alloc, skl_alloc_procsec),
 	LSM_HOOK_INIT(task_free, skl_free_procsec),
 	LSM_HOOK_INIT(inode_permission, skl_inode_permission),
-	LSM_HOOK_INIT(getprocattr, skel_get_proc), //??????
-	LSM_HOOK_INIT(setprocattr, skel_set_proc),
+	//LSM_HOOK_INIT(getprocattr, skel_get_proc), //??????
+	//LSM_HOOK_INIT(setprocattr, skel_set_proc),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
