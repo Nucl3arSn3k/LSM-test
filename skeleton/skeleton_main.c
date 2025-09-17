@@ -8,6 +8,7 @@
 #include <linux/rcupdate.h>
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
+#include <linux/dcache.h>
 #include <linux/init.h>
 #include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
@@ -102,6 +103,30 @@ struct x_value *create_xattr_struct(int app_id)
 	return xval; //You absolute MORON!!!
 }
 
+
+static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,const char *name,const void *value,size_t size, int flags) {
+	struct inode *inode = d_backing_inode(dentry);
+    struct fl_min *inode_sec = skeleton_inode(inode);
+    struct process_attatched *proc_sec = skeleton_task(current);
+	if (proc_sec->appid == 0 || proc_sec->appid == 100) {
+        printk(KERN_INFO "Skeleton LSMv13: Root process setting xattr %s\n", name);
+        return 0;
+    }
+
+	else if(strcmp(name, "security.skl") == 0){
+		if(proc_sec->appid == inode_sec->appid){
+			printk(KERN_INFO "Changing perms allowed for proc %s on non-root id\n",current->comm);
+			return 0;
+		}
+		else{
+            printk(KERN_WARNING "Skeleton LSMv13: Denying %s (appid %d) from setting security.skl on file owned by appid %d\n",current->comm, proc_sec->appid, inode_sec->appid);
+            return -EACCES;
+        }
+	}
+	return 1;
+}
+
+
 static int skl_inode_perms(struct inode *inode)
 {
 	if (system_state < SYSTEM_RUNNING || current->pid <= 0 ||(current->pid > 0 && current->pid < 1000)) { //try noty blocking init processes
@@ -110,8 +135,7 @@ static int skl_inode_perms(struct inode *inode)
 	}
 
 	struct fl_min *inode_sec = skeleton_inode(inode);
-	struct process_attatched *proc_sec =
-		skeleton_task(current); //grabs process security field
+	struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
 	//
 	if (!proc_sec) {
 		panic("The process shouldn't be null! %d", current->pid);
@@ -282,6 +306,7 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(inode_permission, skl_inode_permission),
 	LSM_HOOK_INIT(getprocattr, skl_get_proc), //??????
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
+	LSM_HOOK_INIT(inode_post_setxattr, skl_inode_post_setxattr),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
