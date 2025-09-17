@@ -306,7 +306,7 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(inode_permission, skl_inode_permission),
 	LSM_HOOK_INIT(getprocattr, skl_get_proc), //??????
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
-	LSM_HOOK_INIT(inode_post_setxattr, skl_inode_post_setxattr),
+	LSM_HOOK_INIT(inode_post_setxattr, skl_inode_setxattr),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
