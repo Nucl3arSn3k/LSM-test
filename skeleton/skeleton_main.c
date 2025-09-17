@@ -127,6 +127,21 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 }
 
 
+void skel_inode_proc_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) {
+	struct inode *inode = d_backing_inode(dentry);
+    struct fl_min *inode_sec = skeleton_inode(inode);
+	if (!inode || !inode_sec) {
+        printk(KERN_WARNING "Skeleton LSM: Invalid inode or security context\n");
+        return;
+    }
+    else if (strcmp(name, "security.skl") != 0)
+        return;
+	//Need to parse appid. Just unsure where it's getting backed from
+
+	
+}
+
+
 static int skl_inode_perms(struct inode *inode)
 {
 	if (system_state < SYSTEM_RUNNING || current->pid <= 0 ||(current->pid > 0 && current->pid < 1000)) { //try noty blocking init processes
