@@ -127,7 +127,7 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 }
 
 
-void skel_inode_proc_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) {
+void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) {
 	struct inode *inode = d_backing_inode(dentry);
     struct fl_min *inode_sec = skeleton_inode(inode);
 	if (!inode || !inode_sec) {
@@ -137,7 +137,28 @@ void skel_inode_proc_setxattr(struct dentry *dentry, const char *name,const void
     else if (strcmp(name, "security.skl") != 0)
         return;
 	//Need to parse appid. Just unsure where it's getting backed from
-
+	else {
+	    if (!value) {
+	        printk(KERN_WARNING "Skeleton LSM: NULL xattr value\n");
+	        return;
+	    }
+    	const char *xattrstring = value;
+		if (size >= 65) {
+		    printk(KERN_WARNING "Skeleton LSM: xattr value too large\n");
+		    return;
+		}
+		char temp_buf[65];
+	    memcpy(temp_buf, value, size);
+	    temp_buf[size] = '\0';
+		int first_int = 0;
+		if (sscanf(temp_buf, "%d:", &first_int) == 1) {
+		    // Successfully parsed first integer
+			inode_sec->appid = first_int;
+		} else {
+		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
+		    return;
+		}
+	}
 	
 }
 
@@ -322,6 +343,7 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(getprocattr, skl_get_proc), //??????
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
 	LSM_HOOK_INIT(inode_setxattr, skl_inode_setxattr),
+	LSM_HOOK_INIT(inode_post_setxattr,skl_inode_post_setxattr),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
