@@ -113,7 +113,7 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
         return 0;
     }
 
-	else if(strcmp(name, "security.skl") == 0){
+	else if(strcmp(name, "security.security.skl") == 0){
 		if(proc_sec->appid == inode_sec->appid){
 			printk(KERN_INFO "Changing perms allowed for proc %s on non-root id\n",current->comm);
 			return 0;
@@ -134,7 +134,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
         printk(KERN_WARNING "Skeleton LSM: Invalid inode or security context\n");
         return;
     }
-    else if (strcmp(name, "security.skl") != 0)
+    else if (strcmp(name, "security.security.skl") != 0)
         return;
 	//Need to parse appid. Just unsure where it's getting backed from
 	else {
@@ -198,7 +198,7 @@ static int skl_inode_perms(struct inode *inode)
 	//Just appID matching
 
 	printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d", proc_sec->appid, inode_sec->appid);
-	return -1;
+	return -EACCES;
 }
 
 char *serialize_xattr(struct x_value *xval)
