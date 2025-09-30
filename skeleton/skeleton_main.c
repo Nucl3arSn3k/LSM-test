@@ -127,7 +127,7 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 }
 
 
-void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) {
+void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) { //TODO: modify prints to make sure this hook is firing,since I know the previous hook is. Also check logic
 	struct inode *inode = d_backing_inode(dentry);
     struct fl_min *inode_sec = skeleton_inode(inode);
 	if (!inode || !inode_sec) {
