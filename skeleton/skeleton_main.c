@@ -69,16 +69,16 @@ int skl_get_proc(struct task_struct *p, const char *name, char **value)
 	if (strcmp(name, "current") == 0) {
 		struct process_attatched *proc_sec = skeleton_task(p);
 		if (!proc_sec){
-      return -EINVAL;
-    }
+      		return -EINVAL;
+    	}
 			
 		char *buffer = kmalloc(16, GFP_KERNEL);
 		if (!buffer){
-      return -ENOMEM;
-    }
+      		return -ENOMEM;
+    	}
 			
 
-		int r = sprintf(buffer, "%d", proc_sec->appid);
+		int r = sprintf(buffer, "%d\n", proc_sec->appid);
 		*value = buffer;
 
 		return r;
@@ -154,6 +154,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 		if (sscanf(temp_buf, "%d:", &first_int) == 1) {
 		    // Successfully parsed first integer
 			inode_sec->appid = first_int;
+			printk("Skeleton LSM: Swapping inode ID due to xattr change\n");
 		} else {
 		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
 		    return;
