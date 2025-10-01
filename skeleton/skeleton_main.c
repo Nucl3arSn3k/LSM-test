@@ -111,17 +111,17 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 	if (proc_sec->appid == 0 || proc_sec->appid == 100) {
         printk(KERN_INFO "Skeleton LSMv13: Root process setting xattr %s\n", name);
         return 0;
-    }
-
-	else if(strcmp(name, "security.security.skl") == 0){
+    } else if(strcmp(name, "security.security.skl") == 0){
 		if(proc_sec->appid == inode_sec->appid){
 			printk(KERN_INFO "Changing perms allowed for proc %s on non-root id\n",current->comm);
 			return 0;
-		}
-		else{
+		} else{
             printk(KERN_WARNING "Skeleton LSMv13: Denying %s (appid %d) from setting security.skl on file owned by appid %d\n",current->comm, proc_sec->appid, inode_sec->appid);
             return -EACCES;
         }
+	} else {
+		printk(KERN_WARNING "Skeleton LSMv13: String comparison for xattrs failed");
+		return -EACCES;
 	}
 	return 1;
 }
@@ -133,11 +133,10 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 	if (!inode || !inode_sec) {
         printk(KERN_WARNING "Skeleton LSM: Invalid inode or security context\n");
         return;
-    }
-    else if (strcmp(name, "security.security.skl") != 0)
-        return;
-	//Need to parse appid. Just unsure where it's getting backed from
-	else {
+    } else if (strcmp(name, "security.security.skl") != 0){
+		printk(KERN_WARNING "Skeleton LSM: xattr string comparison failed\n");
+		return;
+	} else {
 	    if (!value) {
 	        printk(KERN_WARNING "Skeleton LSM: NULL xattr value\n");
 	        return;
