@@ -39,10 +39,6 @@ int appid_creator(void)
 
 
 
-static int skl_inode_xattr_skipcap(const char *name)
-{
-    return !strcmp(name, XATTR_NAME_SKELETON);
-}
 
 
 
@@ -297,7 +293,7 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 	*name = XATTR_SKELETON_SUFFIX; //Name set
 	struct task_struct *mytask = current; //use current macro?
 	struct process_attatched *locstruct = NULL; //Should probably nullcheck this
-	int hard = ;
+	int hard = 12;
 	if (mytask) {
 		locstruct = skeleton_task(mytask);
 		hard = locstruct->appid;
@@ -352,7 +348,6 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
 	LSM_HOOK_INIT(inode_setxattr, skl_inode_setxattr),
 	LSM_HOOK_INIT(inode_post_setxattr,skl_inode_post_setxattr),
-	LSM_HOOK_INIT(inode_xattr_skipcap, skl_inode_xattr_skipcap),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
