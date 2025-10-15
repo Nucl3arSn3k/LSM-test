@@ -13,6 +13,10 @@
 #include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
 #include "xattrhandle.h"
+
+
+#define XATTR_SKELETON_SUFFIX "skeleton"
+#define XATTR_DNAME_SKELETON XATTR_SECURITY_PREFIX XATTR_SKELETON_SUFFIX
 //Problem of making attributes PERSIST.
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 //Creates a blob so the nested structure plays nice with other security modules
@@ -111,7 +115,7 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 	if (proc_sec->appid == 0 || proc_sec->appid == 100) {
         printk(KERN_INFO "Skeleton LSMv13: Root process setting xattr %s\n", name);
         return 0;
-    } else if(strcmp(name, "security.security.skl") == 0){
+    } else if(strcmp(name, XATTR_DNAME_SKELETON) == 0){
 		if(proc_sec->appid == inode_sec->appid){
 			printk(KERN_INFO "Changing perms allowed for proc %s on non-root id\n",current->comm);
 			return 0;
@@ -133,7 +137,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 	if (!inode || !inode_sec) {
         printk(KERN_WARNING "Skeleton LSM: Invalid inode or security context\n");
         return;
-    } else if (strcmp(name, "security.security.skl") != 0){
+    } else if (strcmp(name, XATTR_DNAME_SKELETON) != 0){
 		printk(KERN_WARNING "Skeleton LSM: xattr string comparison failed\n");
 		return;
 	} else {
@@ -286,10 +290,10 @@ static void skl_free_procsec(struct task_struct *task)
 //explain input and return types.
 static int skl_init_security(struct inode *node, struct inode *dir, const struct qstr *qstr, const char **name, void **value, size_t *len)
 {
-	*name = "security.skl"; //Name set
+	*name = XATTR_SKELETON_SUFFIX; //Name set
 	struct task_struct *mytask = current; //use current macro?
 	struct process_attatched *locstruct = NULL; //Should probably nullcheck this
-	int hard = 0;
+	int hard = ;
 	if (mytask) {
 		locstruct = skeleton_task(mytask);
 		hard = locstruct->appid;
