@@ -16,7 +16,7 @@
 
 
 #define XATTR_SKELETON_SUFFIX "skeleton"
-#define XATTR_DNAME_SKELETON XATTR_SECURITY_PREFIX XATTR_SKELETON_SUFFIX
+#define XATTR_NAME_SKELETON XATTR_SECURITY_PREFIX XATTR_SKELETON_SUFFIX
 //Problem of making attributes PERSIST.
 //not entirely clear,additional security info on inodes,and HOW does that info get to and from disk?
 //Creates a blob so the nested structure plays nice with other security modules
@@ -38,11 +38,14 @@ int appid_creator(void)
 
 
 
+static int skl_inode_xattr_skipcap(const char *name)
+{
+    return !strcmp(name, XATTR_NAME_SKELETON);
+}
 
 
 
-
-int skl_set_proc(const char *name, void *value, size_t size)
+static int skl_set_proc(const char *name, void *value, size_t size)
 {
 	printk("SKELETONv13:setting proc. Name is %s\n",
 	       name); //Hook called about 3 times on kernel boot, yet no proc file
@@ -67,7 +70,7 @@ int skl_set_proc(const char *name, void *value, size_t size)
 	}
 }
 
-int skl_get_proc(struct task_struct *p, const char *name, char **value)
+static int skl_get_proc(struct task_struct *p, const char *name, char **value)
 {
 	printk("SKELETONv13:getting proc. Name is %s\n", name);
 	if (strcmp(name, "current") == 0) {
@@ -115,7 +118,7 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 	if (proc_sec->appid == 0 || proc_sec->appid == 100) {
         printk(KERN_INFO "Skeleton LSMv13: Root process setting xattr %s\n", name);
         return 0;
-    } else if(strcmp(name, XATTR_DNAME_SKELETON) == 0){
+    } else if(strcmp(name, XATTR_NAME_SKELETON) == 0){
 		if(proc_sec->appid == inode_sec->appid){
 			printk(KERN_INFO "Changing perms allowed for proc %s on non-root id\n",current->comm);
 			return 0;
@@ -137,7 +140,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 	if (!inode || !inode_sec) {
         printk(KERN_WARNING "Skeleton LSM: Invalid inode or security context\n");
         return;
-    } else if (strcmp(name, XATTR_DNAME_SKELETON) != 0){
+    } else if (strcmp(name, XATTR_NAME_SKELETON) != 0){
 		printk(KERN_WARNING "Skeleton LSM: xattr string comparison failed\n");
 		return;
 	} else {
@@ -220,7 +223,7 @@ char *serialize_xattr(struct x_value *xval)
 
 //Basic check of files being accessed as a test function
 
-void skl_inode_free(struct inode *file)
+static void skl_inode_free(struct inode *file)
 { //Free file security field
 	struct fl_min *actual = skeleton_inode(file); //Swapping away from nest
 	if (actual) {
@@ -318,7 +321,7 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 	return 0;
 }
 
-int skl_inode_permission(struct inode *node, int mask)
+static int skl_inode_permission(struct inode *node, int mask)
 {
 	if (!node) {
 		return 0; //Permission granted
@@ -348,6 +351,7 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
 	LSM_HOOK_INIT(inode_setxattr, skl_inode_setxattr),
 	LSM_HOOK_INIT(inode_post_setxattr,skl_inode_post_setxattr),
+	LSM_HOOK_INIT(inode_xattr_skipcap, skl_inode_xattr_skipcap),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
