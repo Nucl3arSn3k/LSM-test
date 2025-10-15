@@ -10,6 +10,7 @@
 #include <linux/atomic.h>
 #include <linux/dcache.h>
 #include <linux/init.h>
+#include <linux/xattr.h>
 #include "skeleton.h" //Not sure if this is actually being used,but I suspect not
 #include "file.h"
 #include "xattrhandle.h"
