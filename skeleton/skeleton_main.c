@@ -130,6 +130,16 @@ static int skl_inode_setxattr(struct mnt_idmap *idmap,struct dentry *dentry,cons
 	return 1;
 }
 
+/* 
+This function is called post-xattr set. Function will change in-memory representation of inode in accordance with on-disk xattrs.
+*dentry which is a single entry in a directory?
+params are *name which is the xattr name
+*value which is the xattr value
+size which is the size of the xattr string
+flags which is an access flag?
+
+*/
+
 
 void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) { //TODO: modify prints to make sure this hook is firing,since I know the previous hook is. Also check logic
 	struct inode *inode = d_backing_inode(dentry);
