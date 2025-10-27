@@ -179,40 +179,42 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 
 static int skl_inode_perms(struct inode *inode)
 {
-	if (system_state < SYSTEM_RUNNING || current->pid <= 0 ||(current->pid > 0 && current->pid < 1000)) { //try noty blocking init processes
-		//printk("System not booted"); //Pass the check by default WHILE system boots
-		return 0; //Check passes! Replace with a static constant
+	if (!S_ISREG(inode->i_mode)) {
+    	return 0;  // Not a regular file, allow by default
 	}
-
-	struct fl_min *inode_sec = skeleton_inode(inode);
-	struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
-	//
-	if (!proc_sec) {
-		panic("The process shouldn't be null! %d", current->pid);
+	
+	else{
+    	if (system_state < SYSTEM_RUNNING || current->pid <= 0 ||(current->pid > 0 && current->pid < 1000)) { //try noty blocking init processes
+			//printk("System not booted"); //Pass the check by default WHILE system boots
+			return 0; //Check passes! Replace with a static constant
+		}
+		struct fl_min *inode_sec = skeleton_inode(inode);
+		struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
+		//
+		if (!proc_sec) {
+			panic("The process shouldn't be null! %d", current->pid);
+		}
+		if (current->flags & PF_KTHREAD) { //pthread bit is set
+			printk("Not labeling a kthread , nice try.");
+			return 0;
+		}
+		if (!inode_sec) {
+			panic("The inode security field should never be null if inode is initalized!");
+		}
+		//struct fl_min *f_label = inode_sec->min; //Shouldn't be null
+		if (proc_sec->appid == 0 ||proc_sec->appid == 100) { //allow the op,doesn't matter what the perm bits are
+			printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %ld,allow access",
+	      proc_sec->appid, inode_sec->appid,inode->i_ino); //Swapping to get panic
+			return 0;
+		}
+	
+		if (inode_sec->appid == proc_sec->appid) { //Allow read. Need to find hook for filesystem read/write
+			printk("Skeleton LSMv13: Read allowed.");
+			return 0;
+		}
+		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d", proc_sec->appid, inode_sec->appid);
+		return -EACCES;
 	}
-	if (current->flags & PF_KTHREAD) { //pthread bit is set
-		printk("Not labeling a kthread , nice try.");
-		return 0;
-	}
-	if (!inode_sec) {
-		panic("The inode security field should never be null if inode is initalized!");
-	}
-	//struct fl_min *f_label = inode_sec->min; //Shouldn't be null
-	if (proc_sec->appid == 0 ||proc_sec->appid == 100) { //allow the op,doesn't matter what the perm bits are
-		printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %ld,allow access",
-      proc_sec->appid, inode_sec->appid,inode->i_ino); //Swapping to get panic
-		return 0;
-	}
-
-	if (inode_sec->appid == proc_sec->appid) { //Allow read. Need to find hook for filesystem read/write
-		printk("Skeleton LSMv13: Read allowed.");
-		return 0;
-	}
-
-	//Just appID matching
-
-	printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d", proc_sec->appid, inode_sec->appid);
-	return -EACCES;
 }
 
 char *serialize_xattr(struct x_value *xval)
