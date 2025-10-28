@@ -212,7 +212,7 @@ static int skl_inode_perms(struct inode *inode)
 			printk("Skeleton LSMv13: Read allowed.");
 			return 0;
 		}
-		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d and id %p", proc_sec->appid, inode_sec->appid, inode);
+		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d, inode %lu, ptr %p", proc_sec->appid, inode_sec->appid, inode->i_ino, inode);
 		return -EACCES;
 	}
 }
