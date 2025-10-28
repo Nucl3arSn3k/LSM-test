@@ -167,7 +167,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 		if (sscanf(temp_buf, "%d:", &first_int) == 1) {
 		    // Successfully parsed first integer
 			inode_sec->appid = first_int;
-			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p)\n",first_int, inode->i_ino, inode);
+			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p) due to xattr change\n",first_int, inode->i_ino, inode);
 		} else {
 		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
 		    return;
