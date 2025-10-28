@@ -167,7 +167,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 		if (sscanf(temp_buf, "%d:", &first_int) == 1) {
 		    // Successfully parsed first integer
 			inode_sec->appid = first_int;
-			printk("Skeleton LSM: Swapping inode ID to %d due to xattr change\n",first_int);
+			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p)\n",first_int, inode->i_ino, inode);
 		} else {
 		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
 		    return;
@@ -212,7 +212,7 @@ static int skl_inode_perms(struct inode *inode)
 			printk("Skeleton LSMv13: Read allowed.");
 			return 0;
 		}
-		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d", proc_sec->appid, inode_sec->appid);
+		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d and id %p", proc_sec->appid, inode_sec->appid, inode);
 		return -EACCES;
 	}
 }
