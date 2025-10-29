@@ -59,7 +59,7 @@ static int skl_set_proc(const char *name, void *value, size_t size)
     }
 			
 		proc_sec->appid = newval;
-		printk(KERN_INFO "Process %s appid changed to %d\n",current->comm, newval);
+		printk(KERN_INFO "Process %s with PID %n appid changed to %d\n",current->comm,current->pid, newval);
 		return size;
 
 	} else {
