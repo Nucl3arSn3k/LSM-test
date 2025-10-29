@@ -330,6 +330,17 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 	return 0;
 }
 
+/* 
+Checks permission before accessing a inode.
+
+struct inode *node is a pointer to the inode in question
+int mask is a access mask
+
+This wraps the skl_inode_perms function which contains the logic
+
+
+*/
+
 static int skl_inode_permission(struct inode *node, int mask)
 {
 	if (!node) {
