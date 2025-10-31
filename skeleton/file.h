@@ -11,8 +11,13 @@
 #include <linux/fs.h>
 //This builds fine
 struct fl_min{
-	int appid; //Simplified from string,minimize complexity
-	unsigned int perms; //Perm "field"
+	  int appid; //Simplified from string,minimize complexity
+	  int read_perm;
+	  int write_perm;
+	  int exec_perm;//Stores perms
+	  int o_readperm;
+	  int o_writeperm;
+      int o_execperm;
 };
 
 struct x_value{ //Just a custom struct for XATTRS
@@ -20,9 +25,9 @@ struct x_value{ //Just a custom struct for XATTRS
       int read_perm;
 	  int write_perm;
 	  int exec_perm;//Stores perms
-	  int o_readperm
-	  int o_writeperm
-      int o_execperm
+	  int o_readperm;
+	  int o_writeperm;
+      int o_execperm;
 };
 
 struct process_attatched{ //Security field for process filler
