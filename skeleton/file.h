@@ -20,6 +20,9 @@ struct x_value{ //Just a custom struct for XATTRS
       int read_perm;
 	  int write_perm;
 	  int exec_perm;//Stores perms
+	  int o_readperm
+	  int o_writeperm
+      int o_execperm
 };
 
 struct process_attatched{ //Security field for process filler
