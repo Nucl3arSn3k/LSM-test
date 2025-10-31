@@ -255,8 +255,12 @@ static int skl_alloc_inodesimp(struct inode *inode)
 	}
 
 	struct fl_min *outer = skeleton_inode(inode);
-	outer->appid = 0; //testing ids
-	outer->perms = 5; //read write executex
+	outer->read_perm = 0;
+  	outer->write_perm = 0;
+  	outer->exec_perm = 0;
+  	outer->o_readperm = 0;
+  	outer->o_writeperm = 0;
+  	outer->o_execperm = 0;
 	if (IS_ERR(outer)) {
 		return PTR_ERR(outer);
 	}
