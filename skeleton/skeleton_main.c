@@ -104,6 +104,9 @@ struct x_value *create_xattr_struct(int app_id)
 	xval->read_perm = SKELETON_READ;
 	xval->write_perm= 0;
 	xval->exec_perm= 0;//More appropriate base16 teststr
+	xval->o_readperm = SKELETON_READ; //read allowed on ownership bits and on other bits
+	xval->o_writeperm = 0;
+	xval->o_execperm = 0;
 	return xval; //You absolute MORON!!!
 }
 
@@ -226,7 +229,7 @@ char *serialize_xattr(struct x_value *xval)
 		return ERR_PTR(-ENOMEM);
 	}
 
-	snprintf(buffer, 32, "%d:%d:%d:%d", xval->appid, xval->read_perm, xval->write_perm, xval->exec_perm);
+	snprintf(buffer, 32, "%d:%d:%d:%d:%d:%d:%d", xval->appid, xval->read_perm, xval->write_perm, xval->exec_perm,xval->o_readperm,xval->o_writeperm,xval->o_execperm);
 	return buffer;
 }
 
