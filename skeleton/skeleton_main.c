@@ -100,8 +100,8 @@ struct x_value *create_xattr_struct(int app_id)
 		printk(KERN_INFO "xattrs alloc failed");
 		return ERR_PTR(-ENOMEM);
 	}
-	xval->appid = app_id;
-	xval->read_perm = SKELETON_READ;
+	xval->appid = app_id; //ownered id
+	xval->read_perm = SKELETON_READ; //owner bits
 	xval->write_perm= 0;
 	xval->exec_perm= 0;//More appropriate base16 teststr
 	xval->o_readperm = SKELETON_READ; //read allowed on ownership bits and on other bits
@@ -142,8 +142,6 @@ size which is the size of the xattr string
 flags which is an access flag?
 
 */
-
-
 void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void *value, size_t size, int flags) { //TODO: modify prints to make sure this hook is firing,since I know the previous hook is. Also check logic
 	struct inode *inode = d_backing_inode(dentry);
     struct fl_min *inode_sec = skeleton_inode(inode);
@@ -180,7 +178,7 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 }
 
 
-static int skl_inode_perms(struct inode *inode)
+static int skl_inode_perms(struct inode *inode, int mask)
 {
 	if (!S_ISREG(inode->i_mode)) {
     	return 0;  // Not a regular file, allow by default
@@ -191,7 +189,7 @@ static int skl_inode_perms(struct inode *inode)
 			//printk("System not booted"); //Pass the check by default WHILE system boots
 			return 0; //Check passes! Replace with a static constant
 		}
-		struct fl_min *inode_sec = skeleton_inode(inode);
+		struct fl_min *inode_sec = skeleton_inode(inode); //Carries security fields now
 		struct process_attatched *proc_sec = skeleton_task(current); //grabs process security field
 		//
 		if (!proc_sec) {
@@ -215,6 +213,24 @@ static int skl_inode_perms(struct inode *inode)
 			printk("Skeleton LSMv13: Read allowed.");
 			return 0;
 		}
+
+		if (proc_sec->appid != 0 && proc_sec->appid != 100) { //check extended attributes (other)
+			// Check if requested operation matches allowed "other" permissions
+			if ((mask & MAY_READ) && (inode_sec->o_readperm != SKELETON_READ)) {
+				printk("Permission bit checking: read denied\n");
+				return -EACCES;
+			}
+			if ((mask & MAY_WRITE) && (inode_sec->o_writeperm != SKELETON_WRITE)) {
+				printk("Permission bit checking: write denied\n");
+				return -EACCES;
+			}
+			if ((mask & MAY_EXEC) && (inode_sec->o_execperm != SKELETON_EXECUTE)) {
+				printk("Permission bit checking: exec denied\n");
+				return -EACCES;
+			}
+			printk("Permission bit checking: access allowed\n");
+			return 0;
+	}
 		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d, inode %lu, ptr %p", proc_sec->appid, inode_sec->appid, inode->i_ino, inode);
 		return -EACCES;
 	}
@@ -239,10 +255,7 @@ static void skl_inode_free(struct inode *file)
 { //Free file security field
 	struct fl_min *actual = skeleton_inode(file); //Swapping away from nest
 	if (actual) {
-		printk(KERN_DEBUG
-		       "Skeleton LSMv13: Freeing security for inode %lu\n",
-		       file->i_ino); //Tweak v num with everybuild
-
+		printk(KERN_DEBUG"Skeleton LSMv13: Freeing security for inode %lu\n",file->i_ino); //Tweak v num with everybuild
 		//free_nest(wrapper);
 		//file->i_security = NULL;
 	}
@@ -265,10 +278,8 @@ static int skl_alloc_inodesimp(struct inode *inode)
 		return PTR_ERR(outer);
 	}
 
-	printk(KERN_INFO "Inode %lu assigned appID %d\n", inode->i_ino,
-	       outer->appid);
-	printk(KERN_INFO "Security structure allocated for task %lu\n",
-	       inode->i_ino);
+	printk(KERN_INFO "Inode %lu assigned appID %d\n", inode->i_ino,outer->appid);
+	printk(KERN_INFO "Security structure allocated for task %lu\n",inode->i_ino);
 	return 0;
 }
 
@@ -353,7 +364,7 @@ static int skl_inode_permission(struct inode *node, int mask)
 	if (!node) {
 		return 0; //Permission granted
 	} else {
-		return skl_inode_perms(node);
+		return skl_inode_perms(node, mask);
 	}
 }
 
