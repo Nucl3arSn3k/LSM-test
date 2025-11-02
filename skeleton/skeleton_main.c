@@ -271,7 +271,7 @@ static int skl_alloc_inodesimp(struct inode *inode)
 	outer->read_perm = 0;
   	outer->write_perm = 0;
   	outer->exec_perm = 0;
-  	outer->o_readperm = 0;
+  	outer->o_readperm = SKELETON_READ; //setting readperm for other on allocation
   	outer->o_writeperm = 0;
   	outer->o_execperm = 0;
 	if (IS_ERR(outer)) {
