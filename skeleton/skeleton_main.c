@@ -177,7 +177,12 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 	
 }
 
+/* 
+Checks the security fields on the inode
+inode passes in the inode in question
+mask is the bitmask specifying file operations
 
+*/
 static int skl_inode_perms(struct inode *inode, int mask)
 {
 	if (!S_ISREG(inode->i_mode)) {
@@ -209,13 +214,14 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			return 0;
 		}
 	
-		if (inode_sec->appid == proc_sec->appid) { //Allow read. Need to find hook for filesystem read/write
-			printk("Skeleton LSMv13: Read allowed.");
+		if (inode_sec->appid == proc_sec->appid) { 
+			printk("Skeleton LSMv13: Operation allowed.");
 			return 0;
 		}
 
 		if (proc_sec->appid != 0 && proc_sec->appid != 100) { //check extended attributes (other)
 			// Check if requested operation matches allowed "other" permissions
+			//add a print here
 			if ((mask & MAY_READ) && (inode_sec->o_readperm != SKELETON_READ)) {
 				printk("Permission bit checking: read denied\n");
 				return -EACCES;
