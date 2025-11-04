@@ -248,7 +248,7 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			    }
 			}
 			if (mask & MAY_EXEC) {
-			    if (inode_sec->o_readperm != SKELETON_EXEC) {
+			    if (inode_sec->o_readperm != SKELETON_EXECUTE) {
 			        printk("Other Permission bits checking: exec denied\n");
 			        return -EACCES;
 			    } 
