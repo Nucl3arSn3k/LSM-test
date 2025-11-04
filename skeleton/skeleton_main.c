@@ -229,22 +229,36 @@ static int skl_inode_perms(struct inode *inode, int mask)
 
 		if (proc_sec->appid != 0 && proc_sec->appid != 100) { //check extended attributes (other)
 			// Check if requested operation matches allowed "other" permissions
-			//add a print here
-			if ((mask & MAY_READ) && (inode_sec->o_readperm != SKELETON_READ)) {
-				printk("Permission bit checking: read denied\n");
-				return -EACCES;
+			if (mask & MAY_READ) {
+			    if (inode_sec->o_readperm != SKELETON_READ) {
+			        printk("Other Permission bit checking: read denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Other Permission bit checking: read allowed\n");
+			    }
 			}
-			if ((mask & MAY_WRITE) && (inode_sec->o_writeperm != SKELETON_WRITE)) {
-				printk("Permission bit checking: write denied\n");
-				return -EACCES;
+			if (mask & MAY_WRITE) {
+			    if (inode_sec->o_readperm != SKELETON_WRITE) {
+			        printk("Other Permission bits checking: write denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Other Permission bits checking: write allowed\n");
+			    }
 			}
-			if ((mask & MAY_EXEC) && (inode_sec->o_execperm != SKELETON_EXECUTE)) {
-				printk("Permission bit checking: exec denied\n");
-				return -EACCES;
+			if (mask & MAY_EXEC) {
+			    if (inode_sec->o_readperm != SKELETON_EXEC) {
+			        printk("Other Permission bits checking: exec denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Other Permission bits checking: exec allowed\n");
+			    }
 			}
 			printk("Permission bit checking: access allowed\n");
 			return 0;
-	}
+		}
 		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d, inode %lu, ptr %p", proc_sec->appid, inode_sec->appid, inode->i_ino, inode);
 		return -EACCES;
 	}
