@@ -164,11 +164,13 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 		char temp_buf[65];
 	    memcpy(temp_buf, value, size);
 	    temp_buf[size] = '\0';
-		int first_int = 0;
-		if (sscanf(temp_buf, "%d:", &first_int) == 1) {
-		    // Successfully parsed first integer
-			inode_sec->appid = first_int;
-			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p) due to xattr change\n",first_int, inode->i_ino, inode);
+		//int first_int = 0;
+		int xattr_buf[7];
+		int count = sscanf(temp_buf, "%d:%d:%d:%d:%d:%d:%d",&xattr_buf[0],&xattr_buf[1],&xattr_buf[2],&xattr_buf[3],&xattr_buf[4],&xattr_buf[5],&xattr_buf[6]);
+		if (count == 7) {
+		    //Building framework to update in-memory security label values from xattrs
+			inode_sec->appid = xattr_buf[0];
+			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p) due to xattr change\n",xattr_buf[0], inode->i_ino, inode);
 		} else {
 		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
 		    return;
