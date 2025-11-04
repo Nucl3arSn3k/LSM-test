@@ -221,9 +221,37 @@ static int skl_inode_perms(struct inode *inode, int mask)
 	      proc_sec->appid, inode_sec->appid,inode->i_ino); //Swapping to get panic
 			return 0;
 		}
-	
 		if (inode_sec->appid == proc_sec->appid) { 
-			printk("Skeleton LSMv13: Operation allowed.");
+			printk("Skeleton LSMv13: appid/inode nonroot match.");
+			if (mask & MAY_READ) {
+			    if (inode_sec->read_perm != SKELETON_READ) {
+			        printk("Owner Permission bit checking: read denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Owner Permission bit checking: read allowed\n");
+			    }
+			}
+
+			if (mask & MAY_WRITE) {
+			    if (inode_sec->write_perm != SKELETON_WRITE) {
+			        printk("Owner Permission bits checking: write denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Owner Permission bits checking: write allowed\n");
+			    }
+			}
+
+			if (mask & MAY_EXEC) {
+			    if (inode_sec->exec_perm != SKELETON_EXECUTE) {
+			        printk("Owner Permission bits checking: exec denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Owner Permission bits checking: exec allowed\n");
+			    }
+			}
 			return 0;
 		}
 
