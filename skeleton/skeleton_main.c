@@ -170,6 +170,12 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 		if (count == 7) {
 		    //Building framework to update in-memory security label values from xattrs
 			inode_sec->appid = xattr_buf[0];
+			inode_sec->read_perm = xattr_buf[1]; //owner bits
+			inode_sec->write_perm= xattr_buf[2];
+			inode_sec->exec_perm= xattr_buf[3];//More appropriate base16 teststr
+			inode_sec->o_readperm = xattr_buf[4]; //read allowed on ownership bits and on other bits
+			inode_sec->o_writeperm = xattr_buf[5];
+			inode_sec->o_execperm = xattr_buf[6];
 			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p) due to xattr change\n",xattr_buf[0], inode->i_ino, inode);
 		} else {
 		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
