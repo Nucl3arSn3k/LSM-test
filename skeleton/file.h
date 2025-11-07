@@ -15,6 +15,9 @@ struct fl_min{
 	  int read_perm;
 	  int write_perm;
 	  int exec_perm;//Stores perms
+	  int g_readperm;
+	  int g_writeperm;
+      int g_execperm;
 	  int o_readperm;
 	  int o_writeperm;
       int o_execperm;
@@ -22,9 +25,13 @@ struct fl_min{
 
 struct x_value{ //Just a custom struct for XATTRS
       int appid; //Stores the APPID or something
+	  int groupid;
       int read_perm;
 	  int write_perm;
 	  int exec_perm;//Stores perms
+	  int g_readperm;
+	  int g_writeperm;
+      int g_execperm;
 	  int o_readperm;
 	  int o_writeperm;
       int o_execperm;
