@@ -301,17 +301,15 @@ static int skl_inode_perms(struct inode *inode, int mask)
 
 char *serialize_xattr(struct x_value *xval)
 {
-	// Allocate memory for the serialized string
-	char *buffer = kmalloc(32, GFP_KERNEL);
+	char *buffer = kmalloc(64, GFP_KERNEL);
 	if (!buffer) {
 		printk(KERN_INFO "serialization buffer allocation failed");
 		return ERR_PTR(-ENOMEM);
 	}
-
-	snprintf(buffer, 32, "%d:%d:%d:%d:%d:%d:%d", xval->appid, xval->read_perm, xval->write_perm, xval->exec_perm,xval->o_readperm,xval->o_writeperm,xval->o_execperm);
+	snprintf(buffer, 64, "%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d", xval->appid, xval->groupid, xval->read_perm, xval->write_perm, xval->exec_perm, xval->g_readperm, xval->g_writeperm, 
+	         xval->g_execperm, xval->o_readperm, xval->o_writeperm, xval->o_execperm);
 	return buffer;
 }
-
 //Basic check of files being accessed as a test function
 
 static void skl_inode_free(struct inode *file)
@@ -337,6 +335,9 @@ static int skl_alloc_inodesimp(struct inode *inode)
   	outer->o_readperm = SKELETON_READ; //setting readperm for other on allocation
   	outer->o_writeperm = 0;
   	outer->o_execperm = 0;
+	outer->g_readperm = 0;
+	outer->g_writeperm = 0;
+	outer->g_execperm = 0;
 	if (IS_ERR(outer)) {
 		return PTR_ERR(outer);
 	}
