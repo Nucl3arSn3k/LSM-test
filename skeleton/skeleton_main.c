@@ -101,9 +101,13 @@ struct x_value *create_xattr_struct(int app_id)
 		return ERR_PTR(-ENOMEM);
 	}
 	xval->appid = app_id; //ownered id
+	xval->groupid = 0;
 	xval->read_perm = SKELETON_READ; //owner bits
 	xval->write_perm= 0;
 	xval->exec_perm= 0;//More appropriate base16 teststr
+	xval->g_readperm=0;
+	xval->g_writeperm=0;
+    xval->g_execperm=0;
 	xval->o_readperm = SKELETON_READ; //read allowed on ownership bits and on other bits
 	xval->o_writeperm = 0;
 	xval->o_execperm = 0;
@@ -165,21 +169,24 @@ void skl_inode_post_setxattr(struct dentry *dentry, const char *name,const void 
 	    memcpy(temp_buf, value, size);
 	    temp_buf[size] = '\0';
 		//int first_int = 0;
-		int xattr_buf[7];
-		int count = sscanf(temp_buf, "%d:%d:%d:%d:%d:%d:%d",&xattr_buf[0],&xattr_buf[1],&xattr_buf[2],&xattr_buf[3],&xattr_buf[4],&xattr_buf[5],&xattr_buf[6]);
-		if (count == 7) {
-		    //Building framework to update in-memory security label values from xattrs
-			inode_sec->appid = xattr_buf[0];
-			inode_sec->read_perm = xattr_buf[1]; //owner bits
-			inode_sec->write_perm= xattr_buf[2];
-			inode_sec->exec_perm= xattr_buf[3];//More appropriate base16 teststr
-			inode_sec->o_readperm = xattr_buf[4]; //read allowed on ownership bits and on other bits
-			inode_sec->o_writeperm = xattr_buf[5];
-			inode_sec->o_execperm = xattr_buf[6];
-			printk("Skeleton LSM: Swapping inode ID to %d (inode %lu, ptr %p) due to xattr change\n",xattr_buf[0], inode->i_ino, inode);
+		int xattr_buf[11];
+		int count = sscanf(temp_buf, "%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",&xattr_buf[0], &xattr_buf[1], &xattr_buf[2], &xattr_buf[3], &xattr_buf[4], &xattr_buf[5],&xattr_buf[6], &xattr_buf[7], &xattr_buf[8],&xattr_buf[9], &xattr_buf[10]);
+		if (count == 11) {
+		    inode_sec->appid = xattr_buf[0];
+		    inode_sec->groupid = xattr_buf[1];         //gid
+		    inode_sec->read_perm = xattr_buf[2];       
+		    inode_sec->write_perm = xattr_buf[3];     
+		    inode_sec->exec_perm = xattr_buf[4];       
+		    inode_sec->g_readperm = xattr_buf[5];      
+		    inode_sec->g_writeperm = xattr_buf[6];     
+		    inode_sec->g_execperm = xattr_buf[7];      
+		    inode_sec->o_readperm = xattr_buf[8];      
+		    inode_sec->o_writeperm = xattr_buf[9];     
+		    inode_sec->o_execperm = xattr_buf[10];    
+	    	printk("Skeleton LSM: Swapping inode ID to %d:%d (inode %lu, ptr %p) due to xattr change\n",xattr_buf[0], xattr_buf[1], inode->i_ino, inode);
 		} else {
-		    printk(KERN_WARNING "Skeleton LSM: Failed to parse first integer\n");
-		    return;
+    		printk(KERN_WARNING "Skeleton LSM: Failed to parse xattr values (got %d fields, expected 11)\n", count);
+    		return;
 		}
 	}
 	
