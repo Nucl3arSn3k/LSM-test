@@ -12,6 +12,7 @@
 //This builds fine
 struct fl_min{
 	  int appid; //Simplified from string,minimize complexity
+	  int groupid;
 	  int read_perm;
 	  int write_perm;
 	  int exec_perm;//Stores perms
