@@ -40,6 +40,7 @@ struct x_value{ //Just a custom struct for XATTRS
 
 struct process_attatched{ //Security field for process filler
   int appid;
+  int groupid;
   unsigned int perms;
 
 };
