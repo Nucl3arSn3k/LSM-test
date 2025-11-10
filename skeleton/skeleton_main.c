@@ -353,14 +353,13 @@ static int skl_alloc_procsec(struct task_struct *task, unsigned long clone_flags
 		return -EINVAL;
 	}
 	struct process_attatched *current_proc = skeleton_task(current);
-	struct process_attatched *contained =
-		skeleton_task(task); //Blob style assignment
+	struct process_attatched *contained = skeleton_task(task); //Blob style assignment
 	//atomic_inc_return(&app_id_increment)
 	//contained->appid = appid_creator();
 	contained->perms = 42;
-
+	
 	contained->appid = current_proc->appid;
-
+	contained->groupid = current_proc->groupid;
 	if (IS_ERR(contained)) {
 		return PTR_ERR(contained);
 	}
@@ -468,6 +467,7 @@ static int __init sk_init(void)
 		printk("inital task is null");
 		return -ENOMEM;
 	}
+	task_0->groupid = 0;
 	task_0->appid = 0;
 	task_0->perms = 22;
 	return 0;
