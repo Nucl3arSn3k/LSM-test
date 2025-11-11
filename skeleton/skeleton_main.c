@@ -92,7 +92,7 @@ static int skl_get_proc(struct task_struct *p, const char *name, char **value)
 }
 
 //Solving that problem, I'm creating a struct for my xattrs
-struct x_value *create_xattr_struct(int app_id)
+struct x_value *create_xattr_struct(int app_id,int group_id)
 {
 	struct x_value *xval;
 	xval = kzalloc(sizeof(struct x_value), GFP_KERNEL);
@@ -101,7 +101,7 @@ struct x_value *create_xattr_struct(int app_id)
 		return ERR_PTR(-ENOMEM);
 	}
 	xval->appid = app_id; //ownered id
-	xval->groupid = 0;
+	xval->groupid = group_id;
 	xval->read_perm = SKELETON_READ; //owner bits
 	xval->write_perm= 0;
 	xval->exec_perm= 0;//More appropriate base16 teststr
@@ -386,16 +386,19 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 	*name = XATTR_SKELETON_SUFFIX; //Name set
 	struct task_struct *mytask = current; //use current macro?
 	struct process_attatched *locstruct = NULL; //Should probably nullcheck this
-	int hard = 12;
+	int hard = 12; //placeholder ints for appid and groupid
+	int soft = 42;
 	if (mytask) {
 		locstruct = skeleton_task(mytask);
 		hard = locstruct->appid;
+		soft = locstruct->groupid;
 		printk(KERN_INFO "Got appid %d from task %s\n", hard,mytask->comm);
 	} else {
 		hard = 22;
-		printk(KERN_INFO "Using fallback appid %d from task %s\n", hard,mytask->comm);
+		soft = 42
+		printk(KERN_INFO "Using fallback appid %d and groupid %d from task %s\n",hard,soft,mytask->comm);
 	}
-	struct x_value *new = create_xattr_struct(hard); //Value set from hard
+	struct x_value *new = create_xattr_struct(hard,soft); //Value set from hard
 	char *vals = serialize_xattr(new);
 
 	if (IS_ERR(new)) {
