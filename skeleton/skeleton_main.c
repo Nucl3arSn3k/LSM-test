@@ -395,7 +395,7 @@ static int skl_init_security(struct inode *node, struct inode *dir, const struct
 		printk(KERN_INFO "Got appid %d from task %s\n", hard,mytask->comm);
 	} else {
 		hard = 22;
-		soft = 42
+		soft = 42;
 		printk(KERN_INFO "Using fallback appid %d and groupid %d from task %s\n",hard,soft,mytask->comm);
 	}
 	struct x_value *new = create_xattr_struct(hard,soft); //Value set from hard
