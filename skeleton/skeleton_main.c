@@ -228,7 +228,7 @@ static int skl_inode_perms(struct inode *inode, int mask)
 	      proc_sec->appid, inode_sec->appid,inode->i_ino); //Swapping to get panic
 			return 0;
 		}
-		if (inode_sec->appid == proc_sec->appid) { 
+		if (inode_sec->appid == proc_sec->appid) {  //Check inode numbers properly.
 			printk("Skeleton LSMv13: appid/inode nonroot match.");
 			if (mask & MAY_READ) {
 			    if (inode_sec->read_perm != SKELETON_READ) {
