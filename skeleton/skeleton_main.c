@@ -262,6 +262,41 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			return 0;
 		}
 
+		if  (inode_sec->groupid != 0 && inode_sec->groupid == proc_sec->groupid){
+			if (mask & MAY_READ) {
+			    if (inode_sec->g_readperm != SKELETON_READ) {
+			        printk("Group Permission bit checking: read denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Other Permission bit checking: read allowed\n");
+			    }
+			}
+			if (mask & MAY_WRITE) {
+			    if (inode_sec->g_writeperm != SKELETON_WRITE) {
+			        printk("Group Permission bits checking: write denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Group Permission bits checking: write allowed\n");
+			    }
+			}
+			if (mask & MAY_EXEC) {
+			    if (inode_sec->g_execperm != SKELETON_EXECUTE) {
+			        printk("Group Permission bits checking: exec denied\n");
+			        return -EACCES;
+			    } 
+				else { 
+			        printk("Other Permission bits checking: exec allowed\n");
+			    }
+			}
+			printk("Permission bit checking: access allowed\n");
+			return 0;
+
+
+			
+		}
+
 		if (proc_sec->appid != 0 && proc_sec->appid != 100) { //check extended attributes (other)
 			// Check if requested operation matches allowed "other" permissions
 			if (mask & MAY_READ) {
