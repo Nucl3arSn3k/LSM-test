@@ -224,39 +224,39 @@ static int skl_inode_perms(struct inode *inode, int mask)
 		}
 		//struct fl_min *f_label = inode_sec->min; //Shouldn't be null
 		if (proc_sec->appid == 0 ||proc_sec->appid == 100) { //allow the op,doesn't matter what the perm bits are
-			printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %ld,allow access",
-	      proc_sec->appid, inode_sec->appid,inode->i_ino); //Swapping to get panic
+			printk(KERN_INFO "Skeleton LSMv13:Process has root appid of %d and inode appid %d along with inode number %lu, pid %d, allow access\n",
+	      proc_sec->appid, inode_sec->appid, inode->i_ino, current->pid);
 			return 0;
 		}
 		if (inode_sec->appid == proc_sec->appid) {  //Check inode numbers properly.
-			printk("Skeleton LSMv13: appid/inode nonroot match.");
+			printk("Skeleton LSMv13: appid/inode nonroot match, inode %lu, pid %d\n", inode->i_ino, current->pid);
 			if (mask & MAY_READ) {
 			    if (inode_sec->read_perm != SKELETON_READ) {
-			        printk("Owner Permission bit checking: read denied\n");
+			        printk("Owner Permission bit checking: read on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Owner Permission bit checking: read allowed\n");
+			        printk("Owner Permission bit checking: read on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 
 			if (mask & MAY_WRITE) {
 			    if (inode_sec->write_perm != SKELETON_WRITE) {
-			        printk("Owner Permission bits checking: write denied\n");
+			        printk("Owner Permission bits checking: write on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Owner Permission bits checking: write allowed\n");
+			        printk("Owner Permission bits checking: write on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 
 			if (mask & MAY_EXEC) {
 			    if (inode_sec->exec_perm != SKELETON_EXECUTE) {
-			        printk("Owner Permission bits checking: exec denied\n");
+			        printk("Owner Permission bits checking: exec on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Owner Permission bits checking: exec allowed\n");
+			        printk("Owner Permission bits checking: exec on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 			return 0;
@@ -265,34 +265,33 @@ static int skl_inode_perms(struct inode *inode, int mask)
 		if  (inode_sec->groupid != 0 && inode_sec->groupid == proc_sec->groupid){
 			if (mask & MAY_READ) {
 			    if (inode_sec->g_readperm != SKELETON_READ) {
-			        printk("Group Permission bit checking: read denied\n");
+			        printk("Group Permission bit checking: read on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bit checking: read allowed\n");
+			        printk("Group Permission bit checking: read on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 			if (mask & MAY_WRITE) {
 			    if (inode_sec->g_writeperm != SKELETON_WRITE) {
-			        printk("Group Permission bits checking: write denied\n");
+			        printk("Group Permission bits checking: write on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Group Permission bits checking: write allowed\n");
+			        printk("Group Permission bits checking: write on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 			if (mask & MAY_EXEC) {
 			    if (inode_sec->g_execperm != SKELETON_EXECUTE) {
-			        printk("Group Permission bits checking: exec denied\n");
+			        printk("Group Permission bits checking: exec on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bits checking: exec allowed\n");
+			        printk("Group Permission bits checking: exec on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
-			printk("Permission bit checking: access allowed\n");
+			printk("Permission bit checking: access on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			return 0;
-
 
 			
 		}
@@ -301,39 +300,38 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			// Check if requested operation matches allowed "other" permissions
 			if (mask & MAY_READ) {
 			    if (inode_sec->o_readperm != SKELETON_READ) {
-			        printk("Other Permission bit checking: read denied\n");
+			        printk("Other Permission bit checking: read on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bit checking: read allowed\n");
+			        printk("Other Permission bit checking: read on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 			if (mask & MAY_WRITE) {
 			    if (inode_sec->o_writeperm != SKELETON_WRITE) {
-			        printk("Other Permission bits checking: write denied\n");
+			        printk("Other Permission bits checking: write on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bits checking: write allowed\n");
+			        printk("Other Permission bits checking: write on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
 			if (mask & MAY_EXEC) {
 			    if (inode_sec->o_execperm != SKELETON_EXECUTE) {
-			        printk("Other Permission bits checking: exec denied\n");
+			        printk("Other Permission bits checking: exec on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bits checking: exec allowed\n");
+			        printk("Other Permission bits checking: exec on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			    }
 			}
-			printk("Permission bit checking: access allowed\n");
+			printk("Permission bit checking: access on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
 			return 0;
 		}
-		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d failed to access file with appid %d, inode %lu, ptr %p", proc_sec->appid, inode_sec->appid, inode->i_ino, inode);
+		printk(KERN_INFO "Skeleton LSMv13: access denied. Process with appid %d, pid %d failed to access file with appid %d, inode %lu, ptr %p\n", proc_sec->appid, current->pid, inode_sec->appid, inode->i_ino, inode);
 		return -EACCES;
 	}
 }
-
 char *serialize_xattr(struct x_value *xval)
 {
 	char *buffer = kmalloc(64, GFP_KERNEL);
