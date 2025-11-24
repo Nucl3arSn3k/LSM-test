@@ -467,6 +467,12 @@ static int skl_inode_permission(struct inode *node, int mask)
 	}
 }
 
+static int skl_path_chmod(const struct path *path, umode_t mode){ //Outline for chmod checks
+
+
+	
+}
+
 //File structs are created when?
 //best guess is open,pipe and socket
 //File descriptor is index into array of struct file pointers,access ctrl info is cached.
@@ -488,6 +494,7 @@ static struct security_hook_list skeleton_hooks[] = {
 	LSM_HOOK_INIT(setprocattr, skl_set_proc),
 	LSM_HOOK_INIT(inode_setxattr, skl_inode_setxattr),
 	LSM_HOOK_INIT(inode_post_setxattr,skl_inode_post_setxattr),
+	LSM_HOOK_INIT(path_chmod,skl_path_chmod),
 	//LSM_HOOK_INIT(file_alloc_security, skel_file_alloc_security),
 	//LSM_HOOK_INIT(file_free_security, skel_file_free_security),
 };
