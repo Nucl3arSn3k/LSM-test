@@ -480,10 +480,13 @@ static int skl_path_chmod(const struct path *path, umode_t mode){ //Outline for 
 	}
 	if (current_proc->appid != 0 && current_proc->appid != 100){
 	    if (current_proc->appid == inode_sec->appid){
+			printk(KERN_INFO "chmod allowed for nonroot on %s\n", local->d_name.name);
 	        return 0;  
 	    }
+		printk(KERN_INFO "chmod operation on %s denied", local->d_name.name);
     	return -EPERM;  
 	}
+	printk(KERN_INFO "chmod operation on %s allowed for root", local->d_name.name);
 	return 0;
 }
 
