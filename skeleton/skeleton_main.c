@@ -55,8 +55,8 @@ static int skl_set_proc(const char *name, void *value, size_t size)
 		}
 		struct process_attatched *proc_sec = skeleton_task(current);
 		if (!proc_sec){
-      return -EINVAL;
-    }
+      		return -EINVAL;
+    	}
 			
 		proc_sec->appid = newval;
 		printk(KERN_INFO "Process %s with PID %d appid changed to %d\n",current->comm,current->pid, newval);
@@ -468,9 +468,23 @@ static int skl_inode_permission(struct inode *node, int mask)
 }
 
 static int skl_path_chmod(const struct path *path, umode_t mode){ //Outline for chmod checks
-
-
-	
+	struct dentry *local = path->dentry;
+	struct inode *filenode = d_backing_inode(local);
+	struct fl_min *inode_sec = skeleton_inode(filenode);
+	//if process id == inode id, you can change perms, if not not. Just a BASIC check to start
+	struct process_attatched *current_proc = skeleton_task(current);
+	//int hard = locstruct->appid;
+	//int soft = locstruct->groupid;
+	if (!filenode || !inode_sec || !current_proc) {
+    	return -EINVAL;
+	}
+	if (current_proc->appid != 0 && current_proc->appid != 100){
+	    if (current_proc->appid == inode_sec->appid){
+	        return 0;  
+	    }
+    	return -EPERM;  
+	}
+	return 0;
 }
 
 //File structs are created when?
