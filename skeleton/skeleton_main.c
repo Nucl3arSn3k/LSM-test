@@ -494,10 +494,22 @@ static int skl_path_chmod(const struct path *path, umode_t mode){ //Outline for 
 
 static int skl_path_chown(const struct path *path, kuid_t uid, kgid_t gid){
 	struct dentry *local = path->dentry;
-	
-
-
-	
+	struct inode *filenode = d_backing_inode(local);
+	struct fl_min *inode_sec = skeleton_inode(filenode);
+	struct process_attatched *current_proc = skeleton_task(current);
+	if (!filenode || !inode_sec || !current_proc) {
+    	return -EINVAL;
+	}
+	if (current_proc->appid != 0 && current_proc->appid != 100){
+	    if (current_proc->appid == inode_sec->appid){
+			printk(KERN_INFO "chown allowed for nonroot from process %d on %s\n",current->pid, local->d_name.name);
+	        return 0;  
+	    }
+		printk(KERN_INFO "chown operation from process %d on %s denied",current->pid, local->d_name.name);
+    	return -EPERM;  
+	}
+	printk(KERN_INFO "chown operation from process %d on %s allowed for root",current->pid, local->d_name.name);
+	return 0;
 }
 
 
