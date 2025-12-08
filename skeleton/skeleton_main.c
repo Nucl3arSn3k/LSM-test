@@ -200,7 +200,7 @@ mask is the bitmask specifying file operations
 */
 static int skl_inode_perms(struct inode *inode, int mask)
 {
-	if (!S_ISREG(inode->i_mode) || !S_ISDIR(inode->imode)) {
+	if (!S_ISREG(inode->i_mode) && !S_ISDIR(inode->i_mode)) {
     	return 0;  // Not a regular file or a directory, allow by default
 	}
 	
