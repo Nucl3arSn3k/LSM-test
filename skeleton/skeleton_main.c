@@ -309,11 +309,11 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			}
 			if (mask & MAY_WRITE) {
 			    if (inode_sec->o_writeperm != SKELETON_WRITE) {
-			        printk("Other Permission bits checking: write on inode %lu, pid %d denied\n", inode->i_ino, current->pid, current->comm);
+			        printk("Other Permission bits checking: write on inode %lu, pid %d and name %s denied\n", inode->i_ino, current->pid, current->comm);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bits checking: write on inode %lu, pid %d allowed\n", inode->i_ino, current->pid, current->comm);
+			        printk("Other Permission bits checking: write on inode %lu, pid %d and name %s allowed\n", inode->i_ino, current->pid, current->comm);
 			    }
 			}
 			if (mask & MAY_EXEC) {
