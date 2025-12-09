@@ -318,11 +318,11 @@ static int skl_inode_perms(struct inode *inode, int mask)
 			}
 			if (mask & MAY_EXEC) {
 			    if (inode_sec->o_execperm != SKELETON_EXECUTE) {
-			        printk("Other Permission bits checking: exec on inode %lu, pid %d denied\n", inode->i_ino, current->pid);
+			        printk("Other Permission bits checking: exec on inode %lu, pid %d and name %s denied\n", inode->i_ino, current->pid, current->comm);
 			        return -EACCES;
 			    } 
 				else { 
-			        printk("Other Permission bits checking: exec on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
+			        printk("Other Permission bits checking: exec on inode %lu, pid %d and name %s allowed\n", inode->i_ino, current->pid, current->comm);
 			    }
 			}
 			printk("Permission bit checking: access on inode %lu, pid %d allowed\n", inode->i_ino, current->pid);
